@@ -13,12 +13,16 @@ module Main where
 
 import Prelude
 
+import Data.Array (uncons, drop)
+import Data.Maybe (Maybe(..))
 import Effect (Effect)
+import Effect.Aff (Aff)
+import Effect.Class (liftEffect)
 import Effect.Console (log)
-import Workers.FFI.Request (Request, url, method)
-import Workers.FFI.Response (Response, newResponseWithInit, jsonResponse, errorResponse)
-import Workers.FFI.DurableObject (DurableObjectState, DurableObjectNamespace, Env, idFromName, get, fetch)
-import Workers.Attractor.InventoryAttractor as InventoryAttractor
+import Platform.Cloudflare.FFI.Request (Request, url, method)
+import Platform.Cloudflare.FFI.Response (Response, newResponseWithInit, jsonResponse, errorResponse)
+import Platform.Cloudflare.FFI.DurableObject (DurableObjectState, DurableObjectNamespace, Env, idFromName, get, fetch)
+import Platform.Cloudflare.InventoryAttractor as InventoryAttractor
 import Foreign.Object as Object
 
 -- | Worker fetch ハンドラー
@@ -27,29 +31,29 @@ import Foreign.Object as Object
 -- | Request → Durable Object Stub → Response
 -- | リクエストは適切な Attractor へルーティングされ、
 -- | 処理結果が Response として返される。
-handleFetch :: Env -> Request -> Effect Response
+handleFetch :: Env -> Request -> Aff Response
 handleFetch env req = do
   let reqUrl = url req
       reqMethod = method req
       path = parseUrlPath reqUrl
 
   -- ルーティング
-  case path of
+  case uncons path of
     -- Health check
-    [] -> jsonResponse { status: "ok", service: "noema-retail" }
+    Nothing -> liftEffect $ jsonResponse { status: "ok", service: "noema-retail" }
 
     -- API routes → InventoryAttractor へ委譲
-    ["api" | rest] -> do
+    Just { head: "api", tail: rest } -> do
       -- Durable Object に委譲
       let namespace = getInventoryNamespace env
-      doId <- idFromName namespace "main"
-      stub <- get namespace doId
+      doId <- liftEffect $ idFromName namespace "main"
+      stub <- liftEffect $ get namespace doId
       -- 内部 URL に変換してフォワード
-      internalReq <- createInternalRequest rest req
+      internalReq <- liftEffect $ createInternalRequest rest req
       fetch stub internalReq
 
     -- 404
-    _ -> errorResponse 404 "Not found"
+    _ -> liftEffect $ errorResponse 404 "Not found"
 
 -- | Scheduled ハンドラー（Cron Trigger）
 -- |

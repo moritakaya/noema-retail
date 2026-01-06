@@ -27,8 +27,10 @@ package:
     - argonaut-core
     - argonaut-codecs
     - argonaut-generic
+    - nullable
+    - arraybuffer-types
 
 workspace:
   packageSet:
-    registry: 59.4.0
+    registry: 9.0.0
   extraPackages: {}
