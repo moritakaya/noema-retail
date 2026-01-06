@@ -1,0 +1,61 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "noema-retail",
+  "main": "workers/index.ts",
+  "compatibility_date": "2024-12-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  "observability": {
+    "enabled": true
+  },
+
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "INVENTORY_ATTRACTOR",
+        "class_name": "InventoryAttractor"
+      },
+      {
+        "name": "SUBJECT_ATTRACTOR",
+        "class_name": "SubjectAttractor"
+      },
+      {
+        "name": "CONTRACT_ATTRACTOR",
+        "class_name": "ContractAttractor"
+      }
+    ]
+  },
+
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["InventoryAttractor", "SubjectAttractor", "ContractAttractor"]
+    }
+  ],
+
+  "triggers": {
+    "crons": ["*/5 * * * *"]
+  },
+
+  "vars": {
+    "ENVIRONMENT": "development",
+    "RAKUTEN_SHOP_CODE": "",
+    "YAHOO_SELLER_ID": "",
+    "SMAREGI_CONTRACT_ID": ""
+  },
+
+  "env": {
+    "production": {
+      "name": "noema-retail-prod",
+      "vars": {
+        "ENVIRONMENT": "production"
+      }
+    },
+    "staging": {
+      "name": "noema-retail-staging",
+      "vars": {
+        "ENVIRONMENT": "staging"
+      }
+    }
+  }
+}
