@@ -68,7 +68,7 @@ export { InventoryAttractor };
 // ============================================================================
 
 export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  async fetch(request: Request, env: Env, _ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     const path = url.pathname;
 
@@ -163,8 +163,6 @@ async function handleSyncApi(
   env: Env,
   path: string
 ): Promise<Response> {
-  const url = new URL(request.url);
-  
   // POST /api/sync/:channel/:productId - チャネル同期
   if (request.method === 'POST') {
     const parts = path.split('/').filter(p => p);
@@ -238,7 +236,7 @@ async function handleStripeWebhook(
 // ============================================================================
 
 async function handleCron(
-  request: Request,
+  _request: Request,
   env: Env,
   path: string
 ): Promise<Response> {
@@ -308,23 +306,22 @@ async function syncProductAllChannels(
   return Response.json({ productId, results });
 }
 
-async function syncAllChannels(env: Env): Promise<void> {
+async function syncAllChannels(_env: Env): Promise<void> {
   console.log('Starting sync all channels...');
-  
-  const id = env.INVENTORY_ATTRACTOR.idFromName('main');
-  const stub = env.INVENTORY_ATTRACTOR.get(id);
 
   // pending 状態の同期を取得して処理
-  // TODO: 商品リストを取得して同期
+  // TODO: 実装
+  // const id = _env.INVENTORY_ATTRACTOR.idFromName('main');
+  // const stub = _env.INVENTORY_ATTRACTOR.get(id);
 
   console.log('Sync all channels completed');
 }
 
-async function fullSync(env: Env): Promise<void> {
+async function fullSync(_env: Env): Promise<void> {
   console.log('Starting full sync...');
-  
+
   // 全チャネルから在庫を取得して Noema と照合
-  // TODO: 実装
+  // TODO: 実装（_envを使用）
 
   console.log('Full sync completed');
 }

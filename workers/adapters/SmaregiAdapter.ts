@@ -9,11 +9,10 @@
  * スマレジ固有のデータ形式を Noema の統一形式に変換。
  */
 
-import type { 
-  Channel, 
-  Inventory, 
+import type {
+  Channel,
   InventoryEvent,
-  SyncResult 
+  SyncResult
 } from '../attractors/InventoryAttractor';
 
 // ============================================================================
@@ -90,11 +89,15 @@ export class SmaregiAdapter {
       'Content-Type': 'application/json',
     };
 
-    const response = await fetch(url, {
+    const requestInit: RequestInit = {
       method,
       headers,
-      body: body ? JSON.stringify(body) : undefined,
-    });
+    };
+    if (body) {
+      requestInit.body = JSON.stringify(body);
+    }
+
+    const response = await fetch(url, requestInit);
 
     if (!response.ok) {
       const errorText = await response.text();

@@ -21,6 +21,7 @@ import { DurableObject } from "cloudflare:workers";
 // ============================================================================
 
 export interface Inventory {
+  [key: string]: string | number | null;
   id: string;
   productId: string;
   locationId: string;
@@ -57,6 +58,7 @@ export type Channel =
   | string;
 
 export interface ChannelSyncStatus {
+  [key: string]: string | number | null;
   productId: string;
   channel: Channel;
   localQuantity: number;
@@ -77,10 +79,11 @@ export interface SyncResult {
 }
 
 export interface Reservation {
+  [key: string]: string | number | null;
   id: string;
   inventoryId: string;
   quantity: number;
-  orderId?: string;
+  orderId: string | null;
   channel: Channel;
   expiresAt: number;
   createdAt: number;
@@ -448,7 +451,7 @@ export class InventoryAttractor extends DurableObject {
       id: reservationId,
       inventoryId: inventory.id,
       quantity: params.quantity,
-      orderId: params.orderId,
+      orderId: params.orderId ?? null,
       channel: params.channel,
       expiresAt,
       createdAt: now
@@ -602,6 +605,7 @@ export class InventoryAttractor extends DurableObject {
 
 // 型定義
 interface InventoryLogEntry {
+  [key: string]: string | number | null;
   id: string;
   inventoryId: string;
   eventType: InventoryEventType;
