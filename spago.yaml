@@ -29,6 +29,11 @@ package:
     - argonaut-generic
     - nullable
     - arraybuffer-types
+    - assert
+    - control
+    - exists
+    - profunctor
+    - tailrec
 
 workspace:
   packageSet:

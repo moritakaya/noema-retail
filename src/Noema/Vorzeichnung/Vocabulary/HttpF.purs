@@ -1,7 +1,9 @@
--- | Noema Effect: HttpF
+-- | Noema Vocabulary: HttpF（単項関手版・Arrow対応）
 -- |
--- | HTTP 操作を表す Functor。
--- | 外部 API との通信を抽象化する。
+-- | HTTP 操作を単項関手として定義。
+-- | Arrow 制約（分岐禁止）は Intent レベルで強制される。
+-- |
+-- | 注意: do記法は使用できない。>>> 記法を使用する。
 module Noema.Vorzeichnung.Vocabulary.HttpF
   ( HttpF(..)
   , HttpIntent
@@ -12,17 +14,14 @@ module Noema.Vorzeichnung.Vocabulary.HttpF
   , httpPost
   , httpPut
   , httpDelete
-  , httpGetJson
-  , httpPostJson
+  , httpPatch
   ) where
 
 import Prelude
 
 import Data.Either (Either)
-import Data.Maybe (Maybe)
-import Foreign (Foreign)
 import Foreign.Object (Object)
-import Noema.Vorzeichnung.Freer (Intent, liftIntent)
+import Noema.Vorzeichnung.Intent (Intent, liftEffect)
 
 -- | HTTP レスポンス
 type HttpResponse =
@@ -39,8 +38,9 @@ data HttpError
   | ParseError String
   | TimeoutError
 
-derive instance Eq HttpError
-instance Show HttpError where
+derive instance eqHttpError :: Eq HttpError
+
+instance showHttpError :: Show HttpError where
   show = case _ of
     NetworkError msg -> "NetworkError: " <> msg
     HttpStatusError status msg -> "HttpStatusError(" <> show status <> "): " <> msg
@@ -48,61 +48,73 @@ instance Show HttpError where
     TimeoutError -> "TimeoutError"
 
 -- | HTTP 操作の Functor
-data HttpF next
-  = HttpGet String (Object String) (Either HttpError HttpResponse -> next)
-  | HttpPost String (Object String) String (Either HttpError HttpResponse -> next)
-  | HttpPut String (Object String) String (Either HttpError HttpResponse -> next)
-  | HttpDelete String (Object String) (Either HttpError HttpResponse -> next)
-  | HttpPatch String (Object String) String (Either HttpError HttpResponse -> next)
+-- |
+-- | 継続渡しスタイル（CPS）で結果型を表現。
+data HttpF a
+  = HttpGet String (Object String) (Either HttpError HttpResponse -> a)
+  | HttpPost String (Object String) String (Either HttpError HttpResponse -> a)
+  | HttpPut String (Object String) String (Either HttpError HttpResponse -> a)
+  | HttpDelete String (Object String) (Either HttpError HttpResponse -> a)
+  | HttpPatch String (Object String) String (Either HttpError HttpResponse -> a)
 
-derive instance Functor HttpF
+derive instance functorHttpF :: Functor HttpF
 
 -- | HTTP 操作の Intent
-type HttpIntent = Intent HttpF
+type HttpIntent a b = Intent HttpF a b
 
---------------------------------------------------------------------------------
+-- ============================================================
 -- Smart Constructors
---------------------------------------------------------------------------------
+-- ============================================================
 
 -- | GET リクエスト
-httpGet :: String -> Object String -> HttpIntent (Either HttpError HttpResponse)
-httpGet url headers = liftIntent $ HttpGet url headers identity
+-- |
+-- | ```purescript
+-- | httpGet "https://api.example.com/users" mempty
+-- |   :: HttpIntent Unit (Either HttpError HttpResponse)
+-- | ```
+httpGet :: String -> Object String -> HttpIntent Unit (Either HttpError HttpResponse)
+httpGet url headers = liftEffect (HttpGet url headers identity)
 
 -- | POST リクエスト
-httpPost :: String -> Object String -> String -> HttpIntent (Either HttpError HttpResponse)
-httpPost url headers body = liftIntent $ HttpPost url headers body identity
+-- |
+-- | ```purescript
+-- | httpPost "https://api.example.com/users" mempty "{\"name\":\"John\"}"
+-- |   :: HttpIntent Unit (Either HttpError HttpResponse)
+-- | ```
+httpPost :: String -> Object String -> String -> HttpIntent Unit (Either HttpError HttpResponse)
+httpPost url headers body = liftEffect (HttpPost url headers body identity)
 
 -- | PUT リクエスト
-httpPut :: String -> Object String -> String -> HttpIntent (Either HttpError HttpResponse)
-httpPut url headers body = liftIntent $ HttpPut url headers body identity
+httpPut :: String -> Object String -> String -> HttpIntent Unit (Either HttpError HttpResponse)
+httpPut url headers body = liftEffect (HttpPut url headers body identity)
 
 -- | DELETE リクエスト
-httpDelete :: String -> Object String -> HttpIntent (Either HttpError HttpResponse)
-httpDelete url headers = liftIntent $ HttpDelete url headers identity
+httpDelete :: String -> Object String -> HttpIntent Unit (Either HttpError HttpResponse)
+httpDelete url headers = liftEffect (HttpDelete url headers identity)
 
--- | GET リクエスト（JSON パース）
-httpGetJson :: String -> Object String -> HttpIntent (Either HttpError Foreign)
-httpGetJson url headers = do
-  response <- httpGet url headers
-  pure $ response >>= parseJson
-  where
-    parseJson :: HttpResponse -> Either HttpError Foreign
-    parseJson resp =
-      -- TODO: 実際の JSON パース
-      pure $ unsafeToForeign resp.body
+-- | PATCH リクエスト
+httpPatch :: String -> Object String -> String -> HttpIntent Unit (Either HttpError HttpResponse)
+httpPatch url headers body = liftEffect (HttpPatch url headers body identity)
 
--- | POST リクエスト（JSON）
-httpPostJson :: String -> Object String -> Foreign -> HttpIntent (Either HttpError Foreign)
-httpPostJson url headers body = do
-  let jsonBody = stringifyJson body
-  response <- httpPost url headers jsonBody
-  pure $ response >>= parseJson
-  where
-    parseJson :: HttpResponse -> Either HttpError Foreign
-    parseJson resp = pure $ unsafeToForeign resp.body
+-- ============================================================
+-- Arrow 合成例（分岐なし）
+-- ============================================================
 
-    stringifyJson :: Foreign -> String
-    stringifyJson = unsafeStringify
+-- | 以下は合法な Intent:
+-- |
+-- | ```purescript
+-- | fetchAndProcess :: HttpIntent Unit String
+-- | fetchAndProcess =
+-- |   httpGet "https://api.example.com/data" mempty
+-- |   >>> arrIntent (either (const "error") _.body)
+-- | ```
+-- |
+-- | Either の処理は arrIntent 内で行う（分岐ではなく値の変換）
 
-foreign import unsafeToForeign :: forall a. a -> Foreign
-foreign import unsafeStringify :: Foreign -> String
+-- | 以下は違法（型エラー）:
+-- |
+-- | ```purescript
+-- | illegalBranching =
+-- |   httpGet url headers
+-- |   >>> left (httpPost url2 headers2 body)  -- ArrowChoice がないので型エラー
+-- | ```

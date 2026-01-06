@@ -1,4 +1,4 @@
-// Noema.Cognition.InventoryHandler FFI
+// Noema.Cognition.StorageHandler FFI
 
 // SqlStorage functions (Cloudflare Durable Objects SQLite API)
 export const exec = (sql) => (query) => {
@@ -19,12 +19,4 @@ export const one = (cursor) => {
 
 export const toArray = (cursor) => {
   return cursor.toArray();
-};
-
-export const getField = (obj) => (field) => {
-  return obj[field];
-};
-
-export const generateId = () => {
-  return crypto.randomUUID();
 };

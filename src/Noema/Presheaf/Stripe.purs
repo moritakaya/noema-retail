@@ -29,11 +29,11 @@ import Noema.Vorzeichnung.Vocabulary.Base (ThingId(..), mkTimestamp)
 import Noema.Vorzeichnung.Vocabulary.InventoryF
   ( Channel(..)
   , SyncResult(..)
-  , InventoryEvent
   )
 import Noema.Presheaf.ChannelAdapter
   ( class ChannelAdapter
   , AdapterError(..)
+  , InventoryEvent(..)
   )
 import Platform.Cloudflare.FFI.Crypto (hmacSha256, secureCompare)
 
@@ -121,7 +121,7 @@ handleWebhook (StripeAdapter config) payload signature = do
 
 -- | ChannelAdapter インスタンス
 instance ChannelAdapter StripeAdapter where
-  channel _ = ChannelStripe
+  channel _ = Stripe
 
   -- Stripe には在庫管理機能がないため、ダミー実装
   getStock _adapter (ThingId _productId) = do
@@ -132,16 +132,14 @@ instance ChannelAdapter StripeAdapter where
 
   syncToNoema _adapter _productId = do
     pure $ SyncFailure
-      { channel: ChannelStripe
+      { channel: Stripe
       , error: "Stripe does not support inventory sync"
-      , timestamp: mkTimestamp 0.0
       }
 
   syncFromNoema _adapter _productId _quantity = do
     pure $ SyncFailure
-      { channel: ChannelStripe
+      { channel: Stripe
       , error: "Stripe does not support inventory sync"
-      , timestamp: mkTimestamp 0.0
       }
 
   -- Webhook 経由で注文を処理

@@ -17,6 +17,7 @@ module Noema.Presheaf.ChannelAdapter
   -- Types
   , AdapterConfig
   , AdapterError(..)
+  , InventoryEvent(..)
   , StockInfo
   , OrderInfo
   -- Utilities
@@ -36,8 +37,15 @@ import Noema.Vorzeichnung.Vocabulary.InventoryF
   ( Channel
   , Quantity
   , SyncResult(..)
-  , InventoryEvent
   )
+
+-- | 在庫イベント型
+-- |
+-- | チャネルからの注文処理で生成されるイベント
+data InventoryEvent
+  = SaleEvent ThingId Quantity
+  | ReturnEvent ThingId Quantity
+  | AdjustEvent ThingId Quantity
 
 -- | アダプター設定の共通型
 type AdapterConfig =

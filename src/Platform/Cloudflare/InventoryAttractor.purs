@@ -20,29 +20,25 @@ module Platform.Cloudflare.InventoryAttractor
 
 import Prelude
 
-import Data.Either (Either(..))
-import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Effect (Effect)
-import Effect.Exception (try)
 import Foreign (Foreign, unsafeToForeign)
-import Foreign.Object as Object
-import Noema.Vorzeichnung.Vocabulary.Base (ThingId(..), LocationId(..), mkTimestamp)
 import Noema.Vorzeichnung.Vocabulary.InventoryF
-  ( Inventory(..)
+  ( StockInfo
   , Quantity(..)
   , QuantityDelta(..)
-  , InventoryEventType(..)
-  , InventoryF(..)
-  , Channel
-  , channelFromString
+  , ThingId(..)
+  , LocationId(..)
+  , getStock
+  , setStock
+  , adjustStock
+  , reserveStock
+  , releaseReservation
   )
-import Noema.Cognition.InventoryHandler (InventoryEnv, mkInventoryEnv, initializeSchema, runInventoryIntent)
-import Noema.Vorzeichnung.Freer (Intent, liftIntent)
-import Platform.Cloudflare.FFI.DurableObject (DurableObjectState, DurableObjectStorage, getStorage, getSql, setAlarm)
-import Platform.Cloudflare.FFI.Request (Request, url, method, json)
-import Platform.Cloudflare.FFI.Response (Response, newResponseWithInit, jsonResponse, errorResponse, notFoundResponse)
-import Platform.Cloudflare.FFI.SqlStorage (SqlStorage, exec)
+import Noema.Cognition.InventoryHandler (InventoryEnv, mkInventoryEnv, initializeSchema, runInventoryIntent, exec)
+import Platform.Cloudflare.FFI.DurableObject (DurableObjectState, DurableObjectStorage, getStorage, getSql)
+import Platform.Cloudflare.FFI.Request (Request, url, method)
+import Platform.Cloudflare.FFI.Response (Response, jsonResponse, errorResponse, notFoundResponse)
 
 -- | Attractor の内部状態
 type InventoryAttractorState =
@@ -144,76 +140,73 @@ handleAlarm state = do
 
 handleGetInventory :: InventoryAttractorState -> ThingId -> LocationId -> Effect Response
 handleGetInventory state productId locationId = do
-  let intent = liftIntent $ GetInventory productId locationId identity
-  result <- runInventoryIntent state.env intent
-  case result of
-    Nothing -> notFoundResponse "Inventory not found"
-    Just inv -> jsonResponse $ inventoryToJson inv
+  let intent = getStock productId locationId
+  result <- runInventoryIntent state.env intent unit
+  jsonResponse $ stockInfoToJson result
 
 handleGetInventoryByProduct :: InventoryAttractorState -> ThingId -> Effect Response
 handleGetInventoryByProduct state productId = do
-  let intent = liftIntent $ GetInventoryByProduct productId identity
-  result <- runInventoryIntent state.env intent
-  jsonResponse $ inventoryToJson <$> result
+  -- 新しい API では location が必須のため、デフォルト location を使用
+  let intent = getStock productId (LocationId "default")
+  result <- runInventoryIntent state.env intent unit
+  jsonResponse [ stockInfoToJson result ]
 
 handleCreateInventory :: InventoryAttractorState -> Request -> Effect Response
-handleCreateInventory state req = do
+handleCreateInventory state _req = do
   -- TODO: JSON パース
   let productId = ThingId "default"
       locationId = LocationId "default"
       quantity = Quantity 0
-  let intent = liftIntent $ CreateInventory productId locationId quantity identity
-  result <- runInventoryIntent state.env intent
-  jsonResponse $ inventoryToJson result
+  let intent = setStock productId locationId quantity
+  _ <- runInventoryIntent state.env intent unit
+  -- setStock は Unit を返すため、作成後に取得
+  let getIntent = getStock productId locationId
+  result <- runInventoryIntent state.env getIntent unit
+  jsonResponse $ stockInfoToJson result
 
 handleAdjustStock :: InventoryAttractorState -> Request -> Effect Response
-handleAdjustStock state req = do
+handleAdjustStock state _req = do
   -- TODO: JSON パース
   let productId = ThingId "default"
       locationId = LocationId "default"
       delta = QuantityDelta 0
-      eventType = IETAdjust
-      channel = channelFromString "self_ec"
-      refId = ""
-  let intent = liftIntent $ AdjustStock productId locationId delta eventType channel refId identity
-  result <- runInventoryIntent state.env intent
-  jsonResponse $ inventoryToJson result
+  let intent = adjustStock productId locationId delta
+  _newQty <- runInventoryIntent state.env intent unit
+  -- adjustStock は新しい Quantity を返す。StockInfo として取得して返す
+  let getIntent = getStock productId locationId
+  stockInfo <- runInventoryIntent state.env getIntent unit
+  jsonResponse $ stockInfoToJson stockInfo
 
 handleReserveStock :: InventoryAttractorState -> Request -> Effect Response
-handleReserveStock state req = do
+handleReserveStock state _req = do
   -- TODO: JSON パース
   let productId = ThingId "default"
       locationId = LocationId "default"
       quantity = Quantity 1
-      channel = channelFromString "self_ec"
-      orderId = Nothing
-  let intent = liftIntent $ ReserveStock productId locationId quantity channel orderId identity
-  result <- runInventoryIntent state.env intent
-  case result of
-    Nothing -> errorResponse 400 "Insufficient stock"
-    Just reservationId -> jsonResponse { reservationId: unwrap reservationId }
+  let intent = reserveStock productId locationId quantity
+  result <- runInventoryIntent state.env intent unit
+  if result
+    then jsonResponse { success: true, message: "Reserved successfully" }
+    else errorResponse 400 "Insufficient stock"
 
 handleReleaseReservation :: InventoryAttractorState -> String -> Effect Response
 handleReleaseReservation state reservationId = do
-  let intent = liftIntent $ ReleaseReservation (wrap reservationId) identity
-  result <- runInventoryIntent state.env intent
-  jsonResponse { success: result }
-  where
-    wrap s = unsafeCoerce s
+  -- TODO: reservationId から productId/locationId を取得するロジックが必要
+  let productId = ThingId "default"
+      locationId = LocationId "default"
+  let intent = releaseReservation productId locationId reservationId
+  _ <- runInventoryIntent state.env intent unit
+  jsonResponse { success: true }
 
 handleGetSyncStatus :: InventoryAttractorState -> ThingId -> Effect Response
-handleGetSyncStatus state productId = do
-  let intent = liftIntent $ GetSyncStatus productId identity
-  result <- runInventoryIntent state.env intent
-  jsonResponse result
+handleGetSyncStatus _state _productId = do
+  -- TODO: 同期状態取得は新しい Arrow API では未実装
+  jsonResponse { status: "not_implemented", message: "Sync status not available in Arrow-based API" }
 
 handleGetInventoryLog :: InventoryAttractorState -> ThingId -> Effect Response
-handleGetInventoryLog state productId = do
-  let from = mkTimestamp 0.0
-      to = mkTimestamp 9999999999999.0
-  let intent = liftIntent $ GetInventoryLog productId from to identity
-  result <- runInventoryIntent state.env intent
-  jsonResponse result
+handleGetInventoryLog _state _productId = do
+  -- TODO: ログ取得は新しい Arrow API では未実装
+  jsonResponse { logs: ([] :: Array String), message: "Inventory log not available in Arrow-based API" }
 
 --------------------------------------------------------------------------------
 -- ヘルパー関数
@@ -222,16 +215,15 @@ handleGetInventoryLog state productId = do
 -- | URL パスを解析
 foreign import parseUrlPath :: String -> Array String
 
--- | Inventory を JSON に変換
-inventoryToJson :: Inventory -> Foreign
-inventoryToJson (Inventory inv) = unsafeToForeign
-  { id: unwrap inv.id
-  , productId: unwrap inv.productId
-  , locationId: unwrap inv.locationId
-  , quantity: unwrap inv.quantity
-  , reserved: unwrap inv.reserved
-  , updatedAt: unwrap inv.updatedAt
+-- | StockInfo を JSON に変換
+stockInfoToJson :: StockInfo -> Foreign
+stockInfoToJson info = unsafeToForeign
+  { thingId: unwrapThingId info.thingId
+  , locationId: unwrapLocationId info.locationId
+  , quantity: unwrap info.quantity
+  , reserved: unwrap info.reserved
+  , available: unwrap info.available
   }
-
--- | 安全でない型変換（一時的）
-foreign import unsafeCoerce :: forall a b. a -> b
+  where
+    unwrapThingId (ThingId s) = s
+    unwrapLocationId (LocationId s) = s

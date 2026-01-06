@@ -17,11 +17,15 @@ module Noema.Vorzeichnung.FreerArrow
   , Intent
   , liftEffect
   , runArrow
+  , compose
+  , composeFlipped
   , (>>>)
   , (<<<)
   , arr
   , first
   , second
+  , parallel
+  , fanout
   , (***)
   , (&&&)
   ) where
@@ -83,17 +87,11 @@ infixr 1 compose as >>>
 infixr 1 composeFlipped as <<<
 
 compose :: forall f a b c. FreerArrow f a b -> FreerArrow f b c -> FreerArrow f a c
-compose f g = case f, g of
+compose fab fbc = case fab, fbc of
   -- 最適化: arr の合成
-  Arr f', Arr g' -> Arr (g' <<< f')
-  -- 最適化: 恒等射との合成
-  Arr f', _ | isId f' -> g
-  _, Arr g' | isId g' -> f
+  Arr f', Arr g' -> Arr (\a -> g' (f' a))
   -- 一般ケース
-  _, _ -> Seq (mkExists (SeqF f g))
-  where
-    isId :: forall x y. (x -> y) -> Boolean
-    isId _ = false  -- 実行時には判定不可能、型レベルでは不要
+  _, _ -> Seq (mkExists (SeqF fab fbc))
 
 composeFlipped :: forall f a b c. FreerArrow f b c -> FreerArrow f a b -> FreerArrow f a c
 composeFlipped g f = compose f g
@@ -140,14 +138,13 @@ runArrow h (Effect eff) = Effect (h eff)
 runArrow h (Seq ex) = runExists (\(SeqF f g) -> runArrow h f >>> runArrow h g) ex
 runArrow h (Par ex) = runExists (\(ParF f) -> unsafeCoerce (runArrow h f)) ex  -- TODO
 
--- | Category インスタンス
-instance categoryFreerArrow :: Category (FreerArrow f) where
-  identity = Arr identity
-  compose = composeFlipped
-
 -- | Semigroupoid インスタンス
 instance semigroupoidFreerArrow :: Semigroupoid (FreerArrow f) where
   compose = composeFlipped
+
+-- | Category インスタンス
+instance categoryFreerArrow :: Category (FreerArrow f) where
+  identity = Arr identity
 
 -- | Profunctor インスタンス（Arrow の前提）
 instance profunctorFreerArrow :: Profunctor (FreerArrow f) where

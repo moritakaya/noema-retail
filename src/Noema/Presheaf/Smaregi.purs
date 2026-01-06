@@ -50,7 +50,7 @@ mkSmaregiAdapter = SmaregiAdapter
 
 -- | ChannelAdapter インスタンス
 instance ChannelAdapter SmaregiAdapter where
-  channel _ = ChannelSmaregi
+  channel _ = Smaregi
 
   getStock (SmaregiAdapter config) (ThingId productId) = do
     let url = config.apiBaseUrl <> "/pos/stocks?store_id=" <> config.storeId <> "&product_id=" <> productId
@@ -90,33 +90,27 @@ instance ChannelAdapter SmaregiAdapter where
             else pure $ Right unit
 
   syncToNoema adapter productId = do
-    now <- currentTimestamp'
     result <- getStock adapter productId
     case result of
       Left err -> pure $ SyncFailure
-        { channel: ChannelSmaregi
+        { channel: Smaregi
         , error: show err
-        , timestamp: now
         }
       Right stockInfo -> pure $ SyncSuccess
-        { channel: ChannelSmaregi
-        , quantitySynced: Quantity stockInfo.quantity
-        , timestamp: now
+        { channel: Smaregi
+        , quantity: Quantity stockInfo.quantity
         }
 
   syncFromNoema adapter productId quantity = do
-    now <- currentTimestamp'
     result <- setStock adapter productId quantity
     case result of
       Left err -> pure $ SyncFailure
-        { channel: ChannelSmaregi
+        { channel: Smaregi
         , error: show err
-        , timestamp: now
         }
       Right _ -> pure $ SyncSuccess
-        { channel: ChannelSmaregi
-        , quantitySynced: quantity
-        , timestamp: now
+        { channel: Smaregi
+        , quantity: quantity
         }
 
   processOrders (SmaregiAdapter _config) _since = do

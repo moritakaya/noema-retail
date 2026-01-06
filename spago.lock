@@ -12,11 +12,14 @@
             "argonaut-generic",
             "arraybuffer-types",
             "arrays",
+            "assert",
             "console",
+            "control",
             "datetime",
             "effect",
             "either",
             "exceptions",
+            "exists",
             "foldable-traversable",
             "foreign",
             "foreign-object",
@@ -29,8 +32,10 @@
             "numbers",
             "ordered-collections",
             "prelude",
+            "profunctor",
             "refs",
             "strings",
+            "tailrec",
             "transformers",
             "tuples"
           ],
@@ -42,6 +47,7 @@
             "argonaut-generic",
             "arraybuffer-types",
             "arrays",
+            "assert",
             "bifunctors",
             "catenable-lists",
             "console",
@@ -637,6 +643,16 @@
         "tuples",
         "unfoldable",
         "unsafe-coerce"
+      ]
+    },
+    "assert": {
+      "type": "registry",
+      "version": "6.0.0",
+      "integrity": "sha256-hCSYcCw9kj3qujoDcriWhCdmrpPZoguSPDZhEMnTl3A=",
+      "dependencies": [
+        "console",
+        "effect",
+        "prelude"
       ]
     },
     "bifunctors": {

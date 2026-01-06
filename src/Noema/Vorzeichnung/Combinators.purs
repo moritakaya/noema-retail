@@ -23,8 +23,7 @@
 -- | Handler の合成が容易になり、最適化の余地が生まれる。
 module Noema.Vorzeichnung.Combinators
   ( -- * Basic combinators
-    eff
-  , eff_
+    eff_
   , constant
   , ignore
     -- * Tuple manipulation
@@ -51,7 +50,7 @@ import Data.Tuple (Tuple(..), fst, snd)
 import Data.Maybe (Maybe(..))
 import Data.Either (Either(..))
 
-import Noema.Vorzeichnung.Freer (Intent, liftEffect)
+import Noema.Vorzeichnung.Intent (Intent, liftEffect)
 
 -- ============================================================
 -- Basic combinators
@@ -59,15 +58,22 @@ import Noema.Vorzeichnung.Freer (Intent, liftEffect)
 
 -- | 効果を持ち上げる（入力を渡す）
 -- |
+-- | Note: この関数は Arrow (ArrowApply なし) では実装不可能。
+-- | 入力に基づいてエフェクトを動的に選択することになり、
+-- | Arrow の線形構造（分岐禁止）を破るため。
+-- |
+-- | ArrowApply が必要: app :: a (a b c, b) c
+-- |
 -- | ```purescript
--- | eff GetStock :: Intent InventoryF ProductId Quantity
+-- | -- 代わりに liftEffect と arr を組み合わせる
+-- | -- eff GetStock :: Intent InventoryF ProductId Quantity
 -- | ```
-eff :: forall f a b. (a -> f b) -> Intent f a b
-eff f = arr f >>> liftEffect'
-  where
-    -- 内部でliftEffectを使うが、入力を受け取る形に
-    liftEffect' :: Intent f (f b) b
-    liftEffect' = undefined -- 後で実装
+-- |
+-- | eff :: forall f a b. (a -> f b) -> Intent f a b
+-- | eff f = arr f >>> liftEffect'
+-- |   where
+-- |     liftEffect' :: Intent f (f b) b
+-- |     liftEffect' = undefined -- ArrowApply が必要
 
 -- | 効果を持ち上げる（入力を無視）
 -- |

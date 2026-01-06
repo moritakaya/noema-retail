@@ -24,13 +24,15 @@
 module TlaPlus.Extract
   ( -- * Core extraction
     extractModule
-  , extractAction
-  , extractIntent
+  , extractVocabAction
+  , extractIntentAction
     -- * TLA+ AST
   , TlaModule(..)
   , TlaAction(..)
+  , TlaUpdate(..)
   , TlaExpr(..)
   , TlaDecl(..)
+  , IntentAst(..)
     -- * Rendering
   , renderModule
   , renderAction
@@ -263,7 +265,7 @@ extractNext vocab intents = TlaDisj $
 
 -- | Render TLA+ module to string
 renderModule :: TlaModule -> String
-renderModule mod = String.joinWith "\n"
+renderModule (TlaModule mod) = String.joinWith "\n"
   [ "-------------------------------- MODULE " <> mod.name <> " --------------------------------"
   , ""
   , "EXTENDS " <> intercalate ", " mod.extends
@@ -312,29 +314,29 @@ renderVariables vars = String.joinWith "\n" $
 
 -- | Render TLA+ action
 renderAction :: TlaAction -> String
-renderAction action = String.joinWith "\n"
+renderAction (TlaAction action) = String.joinWith "\n"
   [ action.name <> "(" <> renderParams action.params <> ") =="
   , indent 2 body
   ]
   where
     body = case action.guard of
       Nothing -> renderUpdates action.updates action.unchanged
-      Just g -> "/\\ " <> renderExpr g <> "\n" <> 
+      Just g -> "/\\ " <> renderExpr g <> "\n" <>
                 indent 2 (renderUpdates action.updates action.unchanged)
-    
-    renderParams ps = intercalate ", " $ map (\(Tuple n t) -> n) ps
-    
-    renderUpdates updates unchanged = 
+
+    renderParams ps = intercalate ", " $ map (\(Tuple n _t) -> n) ps
+
+    renderUpdates updates unchanged =
       let updateLines = map renderUpdate updates
-          unchangedLine = if Array.null unchanged 
-                          then [] 
+          unchangedLine = if Array.null unchanged
+                          then []
                           else ["/\\ UNCHANGED <<" <> intercalate ", " unchanged <> ">>"]
       in String.joinWith "\n" (updateLines <> unchangedLine)
-    
+
     renderUpdate (TlaUpdate u) = case u.index of
       Nothing -> "/\\ " <> u.variable <> "' = " <> renderExpr u.newValue
-      Just idx -> "/\\ " <> u.variable <> "' = [" <> u.variable <> 
-                  " EXCEPT ![" <> renderExpr idx <> "] = " <> 
+      Just idx -> "/\\ " <> u.variable <> "' = [" <> u.variable <>
+                  " EXCEPT ![" <> renderExpr idx <> "] = " <>
                   renderExpr u.newValue <> "]"
 
 -- | Render TLA+ expression

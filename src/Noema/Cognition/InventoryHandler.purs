@@ -1,55 +1,62 @@
--- | Noema Handler: InventoryHandler
+-- | Noema Handler: InventoryHandler（Arrow版）
 -- |
 -- | InventoryF を SQLite Storage へ解釈する Handler。
 -- |
--- | 圏論的解釈：
--- | - InventoryF は在庫操作の Functor
--- | - Handler は A-algebra homomorphism として機能
--- | - Intent → SQLite の状態変更へと「忘却」する
+-- | ## Arrow 移行での変更点
 -- |
--- | イベントソーシング：
--- | すべての在庫変更は inventory_log テーブルに記録される。
--- | これにより、状態の完全な履歴を再構築可能。
+-- | - `foldIntent` → `runIntent`
+-- | - Handler の型は変わらない（f ~> m）
+-- | - Intent の実行時に入力値を渡す必要がある
+-- |
+-- | ## 圏論的解釈
+-- |
+-- | Handler は A-algebra homomorphism として機能:
+-- | - InventoryF は在庫操作の Functor
+-- | - Handler は Intent（意志構造）を忘却し、
+-- |   SQLite の状態変更という事実へ崩落させる
+-- |
+-- | > 実行とは忘却である。
 module Noema.Cognition.InventoryHandler
   ( runInventoryIntent
   , InventoryEnv
+  , Cursor
   , mkInventoryEnv
   , initializeSchema
+  , interpretInventoryF
+  , exec
   ) where
 
 import Prelude
 
 import Data.Array (head)
 import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Newtype (unwrap, wrap)
+import Data.Newtype (unwrap)
 import Effect (Effect)
 import Foreign (Foreign, unsafeToForeign, unsafeFromForeign)
-import Noema.Vorzeichnung.Vocabulary.Base (ThingId(..), LocationId(..), Timestamp(..), mkTimestamp, currentTimestamp)
+
+import Noema.Vorzeichnung.Vocabulary.Base (Timestamp(..), mkTimestamp, currentTimestamp)
 import Noema.Vorzeichnung.Vocabulary.InventoryF
   ( InventoryF(..)
-  , Inventory(..)
-  , InventoryId(..)
+  , InventoryIntent
+  , ThingId(..)
+  , LocationId(..)
   , Quantity(..)
   , QuantityDelta(..)
-  , InventoryEvent(..)
-  , InventoryEventType
-  , InventoryLogEntry(..)
-  , Channel
-  , ChannelSyncStatus(..)
-  , SyncStatus(..)
+  , StockInfo
+  , Channel(..)
   , SyncResult(..)
-  , Reservation(..)
-  , ReservationId(..)
-  , channelToString
-  , channelFromString
-  , eventTypeToString
-  , syncStatusFromString
-  , applyDelta
   )
-import Noema.Vorzeichnung.Freer (Intent, foldIntent)
-import Platform.Cloudflare.FFI.SqlStorage (SqlStorage, exec, execWithParams, one, toArray)
+import Noema.Vorzeichnung.Intent (runIntent)
+import Noema.Cognition.Handler (Handler, runHandler)
+import Platform.Cloudflare.FFI.SqlStorage (SqlStorage)
+
+-- ============================================================
+-- 環境
+-- ============================================================
 
 -- | Inventory Handler 環境
+-- |
+-- | SQLite Storage への参照を保持する。
 type InventoryEnv =
   { sql :: SqlStorage
   }
@@ -57,6 +64,10 @@ type InventoryEnv =
 -- | 環境を作成
 mkInventoryEnv :: SqlStorage -> InventoryEnv
 mkInventoryEnv sql = { sql }
+
+-- ============================================================
+-- スキーマ初期化
+-- ============================================================
 
 -- | スキーマを初期化
 -- |
@@ -67,12 +78,12 @@ initializeSchema sql = do
   let _ = exec sql """
     CREATE TABLE IF NOT EXISTS inventory (
       id TEXT PRIMARY KEY,
-      product_id TEXT NOT NULL,
+      thing_id TEXT NOT NULL,
       location_id TEXT NOT NULL,
       quantity INTEGER NOT NULL DEFAULT 0,
       reserved INTEGER NOT NULL DEFAULT 0,
       updated_at REAL NOT NULL,
-      UNIQUE(product_id, location_id)
+      UNIQUE(thing_id, location_id)
     )
   """
 
@@ -88,7 +99,6 @@ initializeSchema sql = do
       quantity_before INTEGER NOT NULL,
       quantity_after INTEGER NOT NULL,
       created_at REAL NOT NULL,
-      metadata TEXT,
       FOREIGN KEY (inventory_id) REFERENCES inventory(id)
     )
   """
@@ -96,337 +106,198 @@ initializeSchema sql = do
   -- チャネル同期テーブル
   let _ = exec sql """
     CREATE TABLE IF NOT EXISTS channel_sync (
-      product_id TEXT NOT NULL,
+      thing_id TEXT NOT NULL,
       channel TEXT NOT NULL,
       local_quantity INTEGER NOT NULL,
       remote_quantity INTEGER,
       sync_status TEXT NOT NULL DEFAULT 'pending',
       last_sync_at REAL,
-      last_error TEXT,
-      PRIMARY KEY (product_id, channel)
-    )
-  """
-
-  -- 予約テーブル
-  let _ = exec sql """
-    CREATE TABLE IF NOT EXISTS reservation (
-      id TEXT PRIMARY KEY,
-      inventory_id TEXT NOT NULL,
-      quantity INTEGER NOT NULL,
-      order_id TEXT,
-      channel TEXT NOT NULL,
-      expires_at REAL NOT NULL,
-      created_at REAL NOT NULL,
-      FOREIGN KEY (inventory_id) REFERENCES inventory(id)
+      PRIMARY KEY (thing_id, channel)
     )
   """
 
   -- インデックス
-  let _ = exec sql "CREATE INDEX IF NOT EXISTS idx_inventory_product ON inventory(product_id)"
-  let _ = exec sql "CREATE INDEX IF NOT EXISTS idx_inventory_log_inventory ON inventory_log(inventory_id)"
+  let _ = exec sql "CREATE INDEX IF NOT EXISTS idx_inventory_thing ON inventory(thing_id)"
   let _ = exec sql "CREATE INDEX IF NOT EXISTS idx_inventory_log_created ON inventory_log(created_at)"
-  let _ = exec sql "CREATE INDEX IF NOT EXISTS idx_reservation_expires ON reservation(expires_at)"
+  
   pure unit
 
--- | InventoryF を Effect に解釈する
-interpretInventoryF :: InventoryEnv -> InventoryF ~> Effect
+-- ============================================================
+-- Handler 実装
+-- ============================================================
+
+-- | InventoryF を Effect に解釈する Handler
+-- |
+-- | 圏論的解釈:
+-- | この関数は自然変換 InventoryF ~> Effect を定義する。
+-- | A-algebra homomorphism として、操作の構造を保存しながら
+-- | 具体的な SQLite 実装へ変換する。
+interpretInventoryF :: InventoryEnv -> Handler InventoryF Effect
 interpretInventoryF env = case _ of
-  GetInventory productId locationId cont -> do
+  GetStock (ThingId tid) (LocationId lid) k -> do
     let cursor = execWithParams env.sql
-          "SELECT * FROM inventory WHERE product_id = ? AND location_id = ?"
-          [ unsafeToForeign (unwrap productId)
-          , unsafeToForeign (unwrap locationId)
+          "SELECT * FROM inventory WHERE thing_id = ? AND location_id = ?"
+          [ unsafeToForeign tid
+          , unsafeToForeign lid
           ]
-    pure $ cont $ rowToInventory <$> one cursor
+    let maybeRow = one cursor
+    let info = case maybeRow of
+          Nothing -> defaultStockInfo (ThingId tid) (LocationId lid)
+          Just row -> rowToStockInfo row
+    pure (k info)
 
-  GetInventoryByProduct productId cont -> do
-    let cursor = execWithParams env.sql
-          "SELECT * FROM inventory WHERE product_id = ?"
-          [ unsafeToForeign (unwrap productId) ]
-        rows = toArray cursor
-    pure $ cont $ rowToInventory <$> rows
-
-  CreateInventory productId locationId quantity cont -> do
+  SetStock (ThingId tid) (LocationId lid) qty next -> do
     now <- currentTimestamp
-    let inventoryId = mkInventoryId productId locationId
-        _ = execWithParams env.sql
+    let inventoryId = mkInventoryId tid lid
+    let _ = execWithParams env.sql
           """
-          INSERT INTO inventory (id, product_id, location_id, quantity, reserved, updated_at)
+          INSERT INTO inventory (id, thing_id, location_id, quantity, reserved, updated_at)
           VALUES (?, ?, ?, ?, 0, ?)
-          ON CONFLICT (product_id, location_id) DO UPDATE SET
+          ON CONFLICT (thing_id, location_id) DO UPDATE SET
             quantity = excluded.quantity,
             updated_at = excluded.updated_at
           """
-          [ unsafeToForeign (unwrap inventoryId)
-          , unsafeToForeign (unwrap productId)
-          , unsafeToForeign (unwrap locationId)
-          , unsafeToForeign (unwrap quantity)
+          [ unsafeToForeign inventoryId
+          , unsafeToForeign tid
+          , unsafeToForeign lid
+          , unsafeToForeign (unwrap qty)
           , unsafeToForeign (unwrap now)
           ]
-    pure $ cont $ Inventory
-      { id: inventoryId
-      , productId
-      , locationId
-      , quantity
-      , reserved: Quantity 0
-      , updatedAt: now
-      }
+    pure next
 
-  AdjustStock productId locationId delta eventType channel refId cont -> do
+  AdjustStock (ThingId tid) (LocationId lid) delta k -> do
     now <- currentTimestamp
-    let inventoryId = mkInventoryId productId locationId
-
+    let inventoryId = mkInventoryId tid lid
+    
     -- 現在の在庫を取得
     let cursor = execWithParams env.sql
           "SELECT quantity FROM inventory WHERE id = ?"
-          [ unsafeToForeign (unwrap inventoryId) ]
-    let currentQty = fromMaybe (Quantity 0) $ do
-          row <- one cursor
-          Just $ Quantity $ unsafeFromForeign $ getField row "quantity"
-
+          [ unsafeToForeign inventoryId ]
+    let currentQty = case one cursor of
+          Nothing -> Quantity 0
+          Just row -> Quantity (unsafeFromForeign (getField row "quantity"))
+    
     let newQty = applyDelta delta currentQty
-
+    
     -- 在庫を更新
     let _ = execWithParams env.sql
-          """
-          UPDATE inventory SET quantity = ?, updated_at = ?
-          WHERE id = ?
-          """
+          "UPDATE inventory SET quantity = ?, updated_at = ? WHERE id = ?"
           [ unsafeToForeign (unwrap newQty)
           , unsafeToForeign (unwrap now)
-          , unsafeToForeign (unwrap inventoryId)
+          , unsafeToForeign inventoryId
           ]
+    
+    pure (k newQty)
 
-    -- ログを記録
-    logId <- generateId
-    let _ = execWithParams env.sql
-          """
-          INSERT INTO inventory_log
-            (id, inventory_id, event_type, channel, delta, reference_id, quantity_before, quantity_after, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-          """
-          [ unsafeToForeign logId
-          , unsafeToForeign (unwrap inventoryId)
-          , unsafeToForeign (eventTypeToString eventType)
-          , unsafeToForeign (channelToString channel)
-          , unsafeToForeign (unwrap delta)
-          , unsafeToForeign refId
-          , unsafeToForeign (unwrap currentQty)
-          , unsafeToForeign (unwrap newQty)
-          , unsafeToForeign (unwrap now)
-          ]
-
-    -- 更新後の在庫を返す
-    let cursorUpdated = execWithParams env.sql
-          "SELECT * FROM inventory WHERE id = ?"
-          [ unsafeToForeign (unwrap inventoryId) ]
-    pure $ cont $ fromMaybe defaultInventory $ rowToInventory <$> one cursorUpdated
-    where
-      defaultInventory = Inventory
-        { id: mkInventoryId productId locationId
-        , productId
-        , locationId
-        , quantity: Quantity 0
-        , reserved: Quantity 0
-        , updatedAt: mkTimestamp 0.0
-        }
-
-  ReserveStock productId locationId quantity channel orderId cont -> do
+  ReserveStock (ThingId tid) (LocationId lid) qty k -> do
     now <- currentTimestamp
-    let inventoryId = mkInventoryId productId locationId
-
+    let inventoryId = mkInventoryId tid lid
+    
     -- 在庫確認
     let cursor = execWithParams env.sql
           "SELECT quantity, reserved FROM inventory WHERE id = ?"
-          [ unsafeToForeign (unwrap inventoryId) ]
+          [ unsafeToForeign inventoryId ]
+    
     case one cursor of
-      Nothing -> pure $ cont Nothing
+      Nothing -> pure (k false)
       Just row -> do
-        let currentQty = Quantity $ unsafeFromForeign $ getField row "quantity"
-            currentReserved = Quantity $ unsafeFromForeign $ getField row "reserved"
-            available = Quantity $ (unwrap currentQty) - (unwrap currentReserved)
-        if unwrap quantity > unwrap available
-          then pure $ cont Nothing
+        let currentQty = unsafeFromForeign (getField row "quantity") :: Int
+        let currentReserved = unsafeFromForeign (getField row "reserved") :: Int
+        let available = currentQty - currentReserved
+        
+        if unwrap qty > available
+          then pure (k false)
           else do
-            -- 予約を作成
-            reservationId <- ReservationId <$> generateId
-            let expiresAt = mkTimestamp $ (unwrap now) + 900000.0 -- 15分後
-            let _ = execWithParams env.sql
-                  """
-                  INSERT INTO reservation (id, inventory_id, quantity, order_id, channel, expires_at, created_at)
-                  VALUES (?, ?, ?, ?, ?, ?, ?)
-                  """
-                  [ unsafeToForeign (unwrap reservationId)
-                  , unsafeToForeign (unwrap inventoryId)
-                  , unsafeToForeign (unwrap quantity)
-                  , unsafeToForeign orderId
-                  , unsafeToForeign (channelToString channel)
-                  , unsafeToForeign (unwrap expiresAt)
-                  , unsafeToForeign (unwrap now)
-                  ]
-
             -- reserved を更新
-            let newReserved = Quantity $ (unwrap currentReserved) + (unwrap quantity)
+            let newReserved = currentReserved + unwrap qty
             let _ = execWithParams env.sql
                   "UPDATE inventory SET reserved = ?, updated_at = ? WHERE id = ?"
-                  [ unsafeToForeign (unwrap newReserved)
+                  [ unsafeToForeign newReserved
                   , unsafeToForeign (unwrap now)
-                  , unsafeToForeign (unwrap inventoryId)
+                  , unsafeToForeign inventoryId
                   ]
+            pure (k true)
 
-            pure $ cont $ Just reservationId
-
-  ReleaseReservation reservationId cont -> do
+  ReleaseReservation (ThingId tid) (LocationId lid) _reservationId next -> do
     now <- currentTimestamp
-    -- 予約を取得
-    let cursor = execWithParams env.sql
-          "SELECT inventory_id, quantity FROM reservation WHERE id = ?"
-          [ unsafeToForeign (unwrap reservationId) ]
-    case one cursor of
-      Nothing -> pure $ cont false
-      Just row -> do
-        let inventoryId = InventoryId $ unsafeFromForeign $ getField row "inventory_id"
-            quantity = Quantity $ unsafeFromForeign $ getField row "quantity"
-
-        -- 予約を削除
-        let _ = execWithParams env.sql
-              "DELETE FROM reservation WHERE id = ?"
-              [ unsafeToForeign (unwrap reservationId) ]
-
-        -- reserved を減らす
-        let _ = execWithParams env.sql
-              "UPDATE inventory SET reserved = reserved - ?, updated_at = ? WHERE id = ?"
-              [ unsafeToForeign (unwrap quantity)
-              , unsafeToForeign (unwrap now)
-              , unsafeToForeign (unwrap inventoryId)
-              ]
-
-        pure $ cont true
-
-  GetReservation reservationId cont -> do
-    let cursor = execWithParams env.sql
-          "SELECT * FROM reservation WHERE id = ?"
-          [ unsafeToForeign (unwrap reservationId) ]
-    pure $ cont $ rowToReservation <$> one cursor
-
-  SyncToChannel productId channel cont -> do
-    now <- currentTimestamp
-    -- 同期結果を返す（実際の同期はアダプター経由）
-    pure $ cont $ SyncSuccess
-      { channel
-      , quantitySynced: Quantity 0
-      , timestamp: now
-      }
-
-  SyncFromChannel productId channel cont -> do
-    now <- currentTimestamp
-    pure $ cont $ SyncSuccess
-      { channel
-      , quantitySynced: Quantity 0
-      , timestamp: now
-      }
-
-  SyncAllChannels productId cont -> do
-    pure $ cont []
-
-  GetSyncStatus productId cont -> do
-    let cursor = execWithParams env.sql
-          "SELECT * FROM channel_sync WHERE product_id = ?"
-          [ unsafeToForeign (unwrap productId) ]
-        rows = toArray cursor
-    pure $ cont $ rowToChannelSyncStatus <$> rows
-
-  GetInventoryLog productId from to cont -> do
-    let inventoryId = mkInventoryId productId (LocationId "default")
-        cursor = execWithParams env.sql
-          """
-          SELECT * FROM inventory_log
-          WHERE inventory_id LIKE ? AND created_at >= ? AND created_at <= ?
-          ORDER BY created_at DESC
-          """
-          [ unsafeToForeign (unwrap productId <> "%")
-          , unsafeToForeign (unwrap from)
-          , unsafeToForeign (unwrap to)
+    let inventoryId = mkInventoryId tid lid
+    -- 予約解放のロジック（簡略化）
+    let _ = execWithParams env.sql
+          "UPDATE inventory SET reserved = 0, updated_at = ? WHERE id = ?"
+          [ unsafeToForeign (unwrap now)
+          , unsafeToForeign inventoryId
           ]
-        rows = toArray cursor
-    pure $ cont $ rowToInventoryLogEntry <$> rows
+    pure next
 
-  BulkGetInventory productIds cont -> do
-    -- 簡易実装：個別に取得
-    let results = []
-    pure $ cont results
+  SyncToChannel channel (ThingId tid) qty k -> do
+    now <- currentTimestamp
+    -- 同期ロジック（簡略化 - 実際はアダプター経由）
+    pure (k (SyncSuccess { channel, quantity: qty }))
 
-  BulkSyncAllChannels productIds cont -> do
-    pure $ cont []
+  SyncFromChannel channel (ThingId tid) k -> do
+    -- 外部からの同期（簡略化）
+    pure (k (defaultStockInfo (ThingId tid) (LocationId "default")))
 
--- | Intent を実行
-runInventoryIntent :: InventoryEnv -> Intent InventoryF ~> Effect
-runInventoryIntent env = foldIntent (interpretInventoryF env)
+-- ============================================================
+-- Intent 実行
+-- ============================================================
 
---------------------------------------------------------------------------------
+-- | InventoryIntent を Effect で実行
+-- |
+-- | Arrow 版では入力値を明示的に渡す必要がある。
+-- |
+-- | ```purescript
+-- | -- 使用例
+-- | result <- runInventoryIntent env (getStock tid lid) unit
+-- | ```
+runInventoryIntent :: forall a b. InventoryEnv -> InventoryIntent a b -> a -> Effect b
+runInventoryIntent env intent input = 
+  runIntent (interpretInventoryF env) intent input
+
+-- ============================================================
 -- ヘルパー関数
---------------------------------------------------------------------------------
+-- ============================================================
 
 -- | 在庫 ID を生成
-mkInventoryId :: ThingId -> LocationId -> InventoryId
-mkInventoryId (ThingId p) (LocationId l) = InventoryId $ p <> ":" <> l
+mkInventoryId :: String -> String -> String
+mkInventoryId tid lid = tid <> ":" <> lid
 
--- | ユニークな ID を生成
+-- | QuantityDelta を適用
+applyDelta :: QuantityDelta -> Quantity -> Quantity
+applyDelta (QuantityDelta d) (Quantity q) = Quantity (q + d)
+
+-- | デフォルトの在庫情報
+defaultStockInfo :: ThingId -> LocationId -> StockInfo
+defaultStockInfo tid lid =
+  { thingId: tid
+  , locationId: lid
+  , quantity: Quantity 0
+  , reserved: Quantity 0
+  , available: Quantity 0
+  }
+
+-- | 行データを StockInfo に変換
+rowToStockInfo :: Foreign -> StockInfo
+rowToStockInfo row =
+  let qty = unsafeFromForeign (getField row "quantity") :: Int
+      reserved = unsafeFromForeign (getField row "reserved") :: Int
+  in
+    { thingId: ThingId (unsafeFromForeign (getField row "thing_id"))
+    , locationId: LocationId (unsafeFromForeign (getField row "location_id"))
+    , quantity: Quantity qty
+    , reserved: Quantity reserved
+    , available: Quantity (qty - reserved)
+    }
+
+-- ============================================================
+-- FFI 関数
+-- ============================================================
+
+foreign import exec :: SqlStorage -> String -> Cursor
+foreign import execWithParams :: SqlStorage -> String -> Array Foreign -> Cursor
+foreign import one :: Cursor -> Maybe Foreign
+foreign import toArray :: Cursor -> Array Foreign
+foreign import getField :: Foreign -> String -> Foreign
 foreign import generateId :: Effect String
 
--- | Foreign オブジェクトからフィールドを取得
-foreign import getField :: Foreign -> String -> Foreign
-
--- | 行データを Inventory に変換
-rowToInventory :: Foreign -> Inventory
-rowToInventory row = Inventory
-  { id: InventoryId $ unsafeFromForeign $ getField row "id"
-  , productId: ThingId $ unsafeFromForeign $ getField row "product_id"
-  , locationId: LocationId $ unsafeFromForeign $ getField row "location_id"
-  , quantity: Quantity $ unsafeFromForeign $ getField row "quantity"
-  , reserved: Quantity $ unsafeFromForeign $ getField row "reserved"
-  , updatedAt: Timestamp $ unsafeFromForeign $ getField row "updated_at"
-  }
-
--- | 行データを Reservation に変換
-rowToReservation :: Foreign -> Reservation
-rowToReservation row = Reservation
-  { id: ReservationId $ unsafeFromForeign $ getField row "id"
-  , inventoryId: InventoryId $ unsafeFromForeign $ getField row "inventory_id"
-  , quantity: Quantity $ unsafeFromForeign $ getField row "quantity"
-  , orderId: unsafeFromForeign $ getField row "order_id"
-  , channel: channelFromString $ unsafeFromForeign $ getField row "channel"
-  , expiresAt: Timestamp $ unsafeFromForeign $ getField row "expires_at"
-  , createdAt: Timestamp $ unsafeFromForeign $ getField row "created_at"
-  }
-
--- | 行データを ChannelSyncStatus に変換
-rowToChannelSyncStatus :: Foreign -> ChannelSyncStatus
-rowToChannelSyncStatus row = ChannelSyncStatus
-  { productId: ThingId $ unsafeFromForeign $ getField row "product_id"
-  , channel: channelFromString $ unsafeFromForeign $ getField row "channel"
-  , localQuantity: Quantity $ unsafeFromForeign $ getField row "local_quantity"
-  , remoteQuantity: Nothing -- TODO
-  , syncStatus: fromMaybe SPending $ syncStatusFromString $ unsafeFromForeign $ getField row "sync_status"
-  , lastSyncAt: Nothing -- TODO
-  , lastError: unsafeFromForeign $ getField row "last_error"
-  }
-
--- | 行データを InventoryLogEntry に変換
-rowToInventoryLogEntry :: Foreign -> InventoryLogEntry
-rowToInventoryLogEntry row = InventoryLogEntry
-  { id: unsafeFromForeign $ getField row "id"
-  , event: InventoryEvent
-      { eventType: fromMaybe (unsafeFromForeign $ getField row "event_type") Nothing -- TODO: parse
-      , productId: ThingId ""
-      , locationId: LocationId ""
-      , channel: channelFromString $ unsafeFromForeign $ getField row "channel"
-      , delta: QuantityDelta $ unsafeFromForeign $ getField row "delta"
-      , referenceId: unsafeFromForeign $ getField row "reference_id"
-      , timestamp: Timestamp $ unsafeFromForeign $ getField row "created_at"
-      , metadata: unsafeFromForeign $ getField row "metadata"
-      }
-  , quantityBefore: Quantity $ unsafeFromForeign $ getField row "quantity_before"
-  , quantityAfter: Quantity $ unsafeFromForeign $ getField row "quantity_after"
-  , createdAt: Timestamp $ unsafeFromForeign $ getField row "created_at"
-  }
+foreign import data Cursor :: Type

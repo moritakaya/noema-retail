@@ -70,7 +70,7 @@ parseProductId productId =
 
 -- | ChannelAdapter インスタンス
 instance ChannelAdapter RakutenAdapter where
-  channel _ = ChannelRakuten
+  channel _ = Rakuten
 
   getStock (RakutenAdapter config) (ThingId productId) = do
     let { manageNumber, variantId } = parseProductId productId
@@ -121,28 +121,24 @@ instance ChannelAdapter RakutenAdapter where
     result <- getStock adapter productId
     case result of
       Left err -> pure $ SyncFailure
-        { channel: ChannelRakuten
+        { channel: Rakuten
         , error: show err
-        , timestamp: mkTimestamp 0.0  -- TODO: 現在時刻
         }
       Right stockInfo -> pure $ SyncSuccess
-        { channel: ChannelRakuten
-        , quantitySynced: Quantity stockInfo.quantity
-        , timestamp: mkTimestamp 0.0
+        { channel: Rakuten
+        , quantity: Quantity stockInfo.quantity
         }
 
   syncFromNoema adapter productId quantity = do
     result <- setStock adapter productId quantity
     case result of
       Left err -> pure $ SyncFailure
-        { channel: ChannelRakuten
+        { channel: Rakuten
         , error: show err
-        , timestamp: mkTimestamp 0.0
         }
       Right _ -> pure $ SyncSuccess
-        { channel: ChannelRakuten
-        , quantitySynced: quantity
-        , timestamp: mkTimestamp 0.0
+        { channel: Rakuten
+        , quantity: quantity
         }
 
   processOrders (RakutenAdapter _config) _since = do
