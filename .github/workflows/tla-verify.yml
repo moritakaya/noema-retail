@@ -1,0 +1,354 @@
+# Noema TLA+ Verification Pipeline
+#
+# This workflow:
+# 1. Extracts TLA+ specs from PureScript Intent definitions
+# 2. Runs TLC model checker on the specs
+# 3. Generates feedback from counterexamples
+# 4. Creates GitHub issues for violations
+
+name: TLA+ Verification
+
+on:
+  push:
+    branches: [main, feature/*]
+    paths:
+      - 'src/Noema/Vorzeichnung/**'
+      - 'src/Noema/Presheaf/**'
+      - 'tlaplus/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/Noema/Vorzeichnung/**'
+      - 'src/Noema/Presheaf/**'
+      - 'tlaplus/**'
+  workflow_dispatch:
+    inputs:
+      full_check:
+        description: 'Run full state space exploration'
+        required: false
+        default: 'false'
+
+env:
+  TLA_VERSION: '1.8.0'
+  PURESCRIPT_VERSION: '0.15.15'
+
+jobs:
+  # ============================================
+  # Phase 1: Extract TLA+ from Intent
+  # ============================================
+  extract:
+    name: Extract TLA+ Specs
+    runs-on: ubuntu-latest
+    outputs:
+      specs_changed: ${{ steps.check_specs.outputs.changed }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      
+      - name: Setup PureScript
+        uses: purescript-contrib/setup-purescript@main
+        with:
+          purescript: ${{ env.PURESCRIPT_VERSION }}
+          spago: "latest"
+      
+      - name: Cache Spago dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.spago
+            .spago
+            output
+          key: ${{ runner.os }}-spago-${{ hashFiles('spago.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-spago-
+      
+      - name: Install dependencies
+        run: spago install
+      
+      - name: Build extractor
+        run: spago build
+      
+      - name: Extract TLA+ specifications
+        run: |
+          mkdir -p tlaplus/specs/generated
+          spago run --main TlaPlus.Extract.Main -- \
+            --output tlaplus/specs/generated/ \
+            --vocabulary src/Noema/Vorzeichnung/Vocabulary/
+      
+      - name: Check for spec changes
+        id: check_specs
+        run: |
+          if git diff --quiet tlaplus/specs/generated/; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Upload extracted specs
+        uses: actions/upload-artifact@v4
+        with:
+          name: tla-specs
+          path: tlaplus/specs/
+          retention-days: 7
+
+  # ============================================
+  # Phase 2: TLC Model Checking
+  # ============================================
+  model-check:
+    name: TLC Model Checking
+    runs-on: ubuntu-latest
+    needs: extract
+    strategy:
+      fail-fast: false
+      matrix:
+        spec:
+          - name: Inventory
+            config: Inventory.cfg
+          - name: Presheaf
+            config: Presheaf.cfg
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Download specs
+        uses: actions/download-artifact@v4
+        with:
+          name: tla-specs
+          path: tlaplus/specs/
+      
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      
+      - name: Cache TLA+ tools
+        uses: actions/cache@v4
+        with:
+          path: ~/.tla
+          key: tla-tools-${{ env.TLA_VERSION }}
+      
+      - name: Download TLA+ tools
+        run: |
+          mkdir -p ~/.tla
+          if [ ! -f ~/.tla/tla2tools.jar ]; then
+            wget -q https://github.com/tlaplus/tlaplus/releases/download/v${{ env.TLA_VERSION }}/tla2tools.jar \
+              -O ~/.tla/tla2tools.jar
+          fi
+      
+      - name: Run TLC
+        id: tlc
+        continue-on-error: true
+        run: |
+          cd tlaplus/specs
+          
+          # Determine worker count
+          WORKERS=$(nproc)
+          if [ "${{ github.event.inputs.full_check }}" = "true" ]; then
+            WORKERS="auto"
+          fi
+          
+          # Run TLC
+          java -XX:+UseParallelGC \
+               -Xmx4g \
+               -jar ~/.tla/tla2tools.jar \
+               -config ${{ matrix.spec.config }} \
+               -workers $WORKERS \
+               -deadlock \
+               -coverage 1 \
+               -terse \
+               ${{ matrix.spec.name }}.tla 2>&1 | tee tlc-${{ matrix.spec.name }}.out
+          
+          # Check result
+          if grep -q "Error:" tlc-${{ matrix.spec.name }}.out; then
+            echo "status=failed" >> $GITHUB_OUTPUT
+          else
+            echo "status=passed" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Parse TLC output
+        if: steps.tlc.outputs.status == 'failed'
+        run: |
+          echo "::group::TLC Output"
+          cat tlaplus/specs/tlc-${{ matrix.spec.name }}.out
+          echo "::endgroup::"
+          
+          # Extract error summary
+          grep -A 20 "Error:" tlaplus/specs/tlc-${{ matrix.spec.name }}.out > error-summary.txt || true
+      
+      - name: Upload TLC results
+        uses: actions/upload-artifact@v4
+        with:
+          name: tlc-results-${{ matrix.spec.name }}
+          path: |
+            tlaplus/specs/tlc-${{ matrix.spec.name }}.out
+            error-summary.txt
+          retention-days: 30
+      
+      - name: Set job status
+        if: steps.tlc.outputs.status == 'failed'
+        run: exit 1
+
+  # ============================================
+  # Phase 3: Generate Feedback
+  # ============================================
+  feedback:
+    name: Generate Feedback
+    runs-on: ubuntu-latest
+    needs: model-check
+    if: failure()
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup PureScript
+        uses: purescript-contrib/setup-purescript@main
+        with:
+          purescript: ${{ env.PURESCRIPT_VERSION }}
+          spago: "latest"
+      
+      - name: Cache Spago dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.spago
+            .spago
+            output
+          key: ${{ runner.os }}-spago-${{ hashFiles('spago.yaml') }}
+      
+      - name: Download TLC results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: tlc-results-*
+          path: tlc-results/
+          merge-multiple: true
+      
+      - name: Install dependencies
+        run: spago install
+      
+      - name: Generate feedback
+        run: |
+          mkdir -p feedback
+          
+          # Process each failed spec
+          for f in tlc-results/*.out; do
+            if grep -q "Error:" "$f"; then
+              spec_name=$(basename "$f" .out | sed 's/tlc-//')
+              echo "Processing counterexample for $spec_name..."
+              
+              # Generate test case and diagnostics
+              spago run --main TlaPlus.Feedback.Main -- \
+                --input "$f" \
+                --output-test "test/Test/Generated/${spec_name}Counterexample.purs" \
+                --output-diagnostic "feedback/${spec_name}-diagnostic.txt" \
+                --output-issue "feedback/${spec_name}-issue.md"
+            fi
+          done
+      
+      - name: Upload feedback
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-feedback
+          path: feedback/
+          retention-days: 30
+      
+      - name: Create GitHub Issue
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Find issue files
+            const feedbackDir = 'feedback';
+            const files = fs.readdirSync(feedbackDir).filter(f => f.endsWith('-issue.md'));
+            
+            for (const file of files) {
+              const content = fs.readFileSync(path.join(feedbackDir, file), 'utf8');
+              const specName = file.replace('-issue.md', '');
+              
+              // Check for existing open issue
+              const { data: issues } = await github.rest.issues.listForRepo({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: 'open',
+                labels: ['tla+', 'verification', specName]
+              });
+              
+              if (issues.length > 0) {
+                // Update existing issue
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issues[0].number,
+                  body: `## New Counterexample Found\n\nCommit: ${context.sha}\n\n${content}`
+                });
+              } else {
+                // Create new issue
+                await github.rest.issues.create({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  title: `TLA+ Verification Failed: ${specName}`,
+                  body: content,
+                  labels: ['tla+', 'verification', specName, 'bug']
+                });
+              }
+            }
+
+  # ============================================
+  # Phase 4: Report Summary
+  # ============================================
+  summary:
+    name: Verification Summary
+    runs-on: ubuntu-latest
+    needs: [extract, model-check]
+    if: always()
+    
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+      
+      - name: Generate summary
+        run: |
+          echo "## TLA+ Verification Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # List checked specs
+          echo "### Specifications Checked" >> $GITHUB_STEP_SUMMARY
+          for f in artifacts/tlc-results-*/*.out; do
+            if [ -f "$f" ]; then
+              spec_name=$(basename "$f" .out | sed 's/tlc-//')
+              if grep -q "Model checking completed" "$f"; then
+                echo "- ✅ $spec_name" >> $GITHUB_STEP_SUMMARY
+              elif grep -q "Error:" "$f"; then
+                echo "- ❌ $spec_name" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "- ⏳ $spec_name (incomplete)" >> $GITHUB_STEP_SUMMARY
+              fi
+            fi
+          done
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # State space statistics
+          echo "### State Space Statistics" >> $GITHUB_STEP_SUMMARY
+          echo "| Spec | States | Distinct | Depth |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          
+          for f in artifacts/tlc-results-*/*.out; do
+            if [ -f "$f" ]; then
+              spec_name=$(basename "$f" .out | sed 's/tlc-//')
+              states=$(grep -oP '\d+ states generated' "$f" | grep -oP '\d+' | head -1 || echo "-")
+              distinct=$(grep -oP '\d+ distinct states' "$f" | grep -oP '\d+' | head -1 || echo "-")
+              depth=$(grep -oP 'depth: \d+' "$f" | grep -oP '\d+' | head -1 || echo "-")
+              echo "| $spec_name | $states | $distinct | $depth |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
