@@ -1,0 +1,34 @@
+package:
+  name: noema-retail
+  dependencies:
+    - prelude
+    - effect
+    - aff
+    - free
+    - either
+    - maybe
+    - arrays
+    - foreign-object
+    - transformers
+    - newtype
+    - strings
+    - integers
+    - numbers
+    - refs
+    - aff-promise
+    - foreign
+    - tuples
+    - foldable-traversable
+    - ordered-collections
+    - console
+    - exceptions
+    - datetime
+    - now
+    - argonaut-core
+    - argonaut-codecs
+    - argonaut-generic
+
+workspace:
+  packageSet:
+    registry: 59.4.0
+  extraPackages: {}

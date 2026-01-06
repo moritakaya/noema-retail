@@ -37,6 +37,12 @@ module Noema.Domain.Inventory
   -- ユーティリティ
   , availableQuantity
   , applyDelta
+  , channelToString
+  , channelFromString
+  , eventTypeToString
+  , eventTypeFromString
+  , syncStatusToString
+  , syncStatusFromString
   ) where
 
 import Prelude
@@ -46,7 +52,7 @@ import Data.Show.Generic (genericShow)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 
-import Noema.Domain.Base (ThingId, SubjectId, ContractId, Timestamp, LocationId)
+import Noema.Domain.Base (ThingId, Timestamp, LocationId)
 
 --------------------------------------------------------------------------------
 -- 基本型
@@ -90,6 +96,7 @@ data Channel
   | ChannelYahoo         -- Yahoo!ショッピング
   | ChannelSmaregi       -- スマレジ（実店舗）
   | ChannelSelfEC        -- 自社EC
+  | ChannelStripe        -- Stripe（決済）
   | ChannelOther String  -- その他（拡張用）
 
 derive instance Generic Channel _
@@ -104,7 +111,18 @@ channelToString = case _ of
   ChannelYahoo -> "yahoo"
   ChannelSmaregi -> "smaregi"
   ChannelSelfEC -> "self_ec"
+  ChannelStripe -> "stripe"
   ChannelOther s -> s
+
+-- | 文字列からチャネルへ
+channelFromString :: String -> Channel
+channelFromString = case _ of
+  "rakuten" -> ChannelRakuten
+  "yahoo" -> ChannelYahoo
+  "smaregi" -> ChannelSmaregi
+  "self_ec" -> ChannelSelfEC
+  "stripe" -> ChannelStripe
+  s -> ChannelOther s
 
 --------------------------------------------------------------------------------
 -- 在庫
@@ -117,7 +135,7 @@ channelToString = case _ of
 -- | 圏論的解釈：
 -- | Inventory(product, location) は在庫数の「現在値」を表す。
 -- | これは Vorzeichnungsschema が実行（忘却）された結果の一部。
-data Inventory = Inventory
+type InventoryRecord =
   { id :: InventoryId
   , productId :: ThingId            -- 商品（Thing）への参照
   , locationId :: LocationId        -- 在庫ロケーション
@@ -126,6 +144,9 @@ data Inventory = Inventory
   , updatedAt :: Timestamp
   }
 
+newtype Inventory = Inventory InventoryRecord
+
+derive instance Newtype Inventory _
 derive instance Generic Inventory _
 instance Show Inventory where show = genericShow
 
@@ -133,19 +154,22 @@ instance Show Inventory where show = genericShow
 -- |
 -- | available = quantity - reserved
 availableQuantity :: Inventory -> Quantity
-availableQuantity inv = Quantity (q - r)
+availableQuantity (Inventory inv) = Quantity (q - r)
   where
     Quantity q = inv.quantity
     Quantity r = inv.reserved
 
 -- | 在庫ロケーション
-data InventoryLocation = InventoryLocation
+type InventoryLocationRecord =
   { id :: LocationId
   , name :: String
   , locationType :: LocationType
   , channel :: Maybe Channel        -- チャネル固有のロケーション（店舗など）
   }
 
+newtype InventoryLocation = InventoryLocation InventoryLocationRecord
+
+derive instance Newtype InventoryLocation _
 derive instance Generic InventoryLocation _
 instance Show InventoryLocation where show = genericShow
 
@@ -170,7 +194,7 @@ instance Show LocationType where show = genericShow
 -- | 圏論的解釈：
 -- | InventoryEvent は Inventory 圏の射。
 -- | apply : InventoryEvent × Inventory → Inventory
-data InventoryEvent = InventoryEvent
+type InventoryEventRecord =
   { eventType :: InventoryEventType
   , productId :: ThingId
   , locationId :: LocationId
@@ -181,6 +205,9 @@ data InventoryEvent = InventoryEvent
   , metadata :: Maybe String        -- 追加情報（JSON）
   }
 
+newtype InventoryEvent = InventoryEvent InventoryEventRecord
+
+derive instance Newtype InventoryEvent _
 derive instance Generic InventoryEvent _
 instance Show InventoryEvent where show = genericShow
 
@@ -198,8 +225,29 @@ derive instance Generic InventoryEventType _
 derive instance Eq InventoryEventType
 instance Show InventoryEventType where show = genericShow
 
+eventTypeToString :: InventoryEventType -> String
+eventTypeToString = case _ of
+  IETSale -> "sale"
+  IETPurchase -> "purchase"
+  IETAdjust -> "adjust"
+  IETTransfer -> "transfer"
+  IETReserve -> "reserve"
+  IETRelease -> "release"
+  IETReturn -> "return"
+
+eventTypeFromString :: String -> Maybe InventoryEventType
+eventTypeFromString = case _ of
+  "sale" -> Just IETSale
+  "purchase" -> Just IETPurchase
+  "adjust" -> Just IETAdjust
+  "transfer" -> Just IETTransfer
+  "reserve" -> Just IETReserve
+  "release" -> Just IETRelease
+  "return" -> Just IETReturn
+  _ -> Nothing
+
 -- | 在庫ログエントリ
-data InventoryLogEntry = InventoryLogEntry
+type InventoryLogEntryRecord =
   { id :: String
   , event :: InventoryEvent
   , quantityBefore :: Quantity
@@ -207,6 +255,9 @@ data InventoryLogEntry = InventoryLogEntry
   , createdAt :: Timestamp
   }
 
+newtype InventoryLogEntry = InventoryLogEntry InventoryLogEntryRecord
+
+derive instance Newtype InventoryLogEntry _
 derive instance Generic InventoryLogEntry _
 instance Show InventoryLogEntry where show = genericShow
 
@@ -219,7 +270,7 @@ applyDelta (QuantityDelta d) (Quantity q) = Quantity (q + d)
 --------------------------------------------------------------------------------
 
 -- | チャネル同期状態
-data ChannelSyncStatus = ChannelSyncStatus
+type ChannelSyncStatusRecord =
   { productId :: ThingId
   , channel :: Channel
   , localQuantity :: Quantity       -- Noema側の認識
@@ -229,6 +280,9 @@ data ChannelSyncStatus = ChannelSyncStatus
   , lastError :: Maybe String
   }
 
+newtype ChannelSyncStatus = ChannelSyncStatus ChannelSyncStatusRecord
+
+derive instance Newtype ChannelSyncStatus _
 derive instance Generic ChannelSyncStatus _
 instance Show ChannelSyncStatus where show = genericShow
 
@@ -242,6 +296,21 @@ data SyncStatus
 derive instance Generic SyncStatus _
 derive instance Eq SyncStatus
 instance Show SyncStatus where show = genericShow
+
+syncStatusToString :: SyncStatus -> String
+syncStatusToString = case _ of
+  SSynced -> "synced"
+  SPending -> "pending"
+  SError -> "error"
+  SConflict -> "conflict"
+
+syncStatusFromString :: String -> Maybe SyncStatus
+syncStatusFromString = case _ of
+  "synced" -> Just SSynced
+  "pending" -> Just SPending
+  "error" -> Just SError
+  "conflict" -> Just SConflict
+  _ -> Nothing
 
 -- | 同期結果
 data SyncResult
@@ -281,7 +350,7 @@ derive newtype instance Show ReservationId
 -- |
 -- | 注文確定前に在庫を確保するための予約。
 -- | 予約中は available が減少する。
-data Reservation = Reservation
+type ReservationRecord =
   { id :: ReservationId
   , inventoryId :: InventoryId
   , quantity :: Quantity
@@ -291,6 +360,9 @@ data Reservation = Reservation
   , createdAt :: Timestamp
   }
 
+newtype Reservation = Reservation ReservationRecord
+
+derive instance Newtype Reservation _
 derive instance Generic Reservation _
 instance Show Reservation where show = genericShow
 
@@ -302,6 +374,11 @@ instance Show Reservation where show = genericShow
 -- |
 -- | Vorzeichnungsschema の語彙。
 -- | InventoryF は在庫操作の Intent を構成する。
+-- |
+-- | 圏論的解釈：
+-- | InventoryF は Arrow Effects の制約に従い、
+-- | 操作は線形な列（sequence）として設計されている。
+-- | 分岐は許可されない。
 data InventoryF next
   -- 在庫CRUD
   = GetInventory ThingId LocationId (Maybe Inventory -> next)
