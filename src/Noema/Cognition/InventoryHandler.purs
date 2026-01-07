@@ -65,6 +65,13 @@ type InventoryEnv =
 mkInventoryEnv :: SqlStorage -> InventoryEnv
 mkInventoryEnv sql = { sql }
 
+-- | 最大在庫数（TLA+ MaxQuantity に対応）
+-- |
+-- | TLA+ 仕様との整合性:
+-- |   CONSTANTS MaxQuantity = 1000
+maxQuantity :: Int
+maxQuantity = 1000
+
 -- ============================================================
 -- スキーマ初期化
 -- ============================================================
@@ -192,24 +199,28 @@ interpretInventoryF env = case _ of
   ReserveStock (ThingId tid) (LocationId lid) qty k -> do
     now <- currentTimestamp
     let inventoryId = mkInventoryId tid lid
-    
+
     -- 在庫確認
     let cursor = execWithParams env.sql
           "SELECT quantity, reserved FROM inventory WHERE id = ?"
           [ unsafeToForeign inventoryId ]
-    
+
     case one cursor of
       Nothing -> pure (k false)
       Just row -> do
         let currentQty = unsafeFromForeign (getField row "quantity") :: Int
         let currentReserved = unsafeFromForeign (getField row "reserved") :: Int
         let available = currentQty - currentReserved
-        
-        if unwrap qty > available
+        let newReserved = currentReserved + unwrap qty
+
+        -- TLA+ ガード:
+        --   qty > 0 (Quantity は正であることを型で保証)
+        --   stock[<<pid, lid>>] >= qty (available >= qty)
+        --   reserved[<<pid, lid>>] + qty <= MaxQuantity
+        if unwrap qty > available || newReserved > maxQuantity
           then pure (k false)
           else do
             -- reserved を更新
-            let newReserved = currentReserved + unwrap qty
             let _ = execWithParams env.sql
                   "UPDATE inventory SET reserved = ?, updated_at = ? WHERE id = ?"
                   [ unsafeToForeign newReserved
@@ -221,13 +232,35 @@ interpretInventoryF env = case _ of
   ReleaseReservation (ThingId tid) (LocationId lid) _reservationId next -> do
     now <- currentTimestamp
     let inventoryId = mkInventoryId tid lid
-    -- 予約解放のロジック（簡略化）
-    let _ = execWithParams env.sql
-          "UPDATE inventory SET reserved = 0, updated_at = ? WHERE id = ?"
-          [ unsafeToForeign (unwrap now)
-          , unsafeToForeign inventoryId
-          ]
-    pure next
+
+    -- 現在の在庫と予約を取得
+    let cursor = execWithParams env.sql
+          "SELECT quantity, reserved FROM inventory WHERE id = ?"
+          [ unsafeToForeign inventoryId ]
+
+    case one cursor of
+      Nothing -> pure next  -- 在庫がない場合は何もしない
+      Just row -> do
+        let currentQty = unsafeFromForeign (getField row "quantity") :: Int
+        let currentReserved = unsafeFromForeign (getField row "reserved") :: Int
+
+        -- 予約を解放（簡略化: 全予約を解放）
+        -- 実際は reservationId から qty を取得すべき
+        let releaseQty = currentReserved
+        let newStock = currentQty + releaseQty
+
+        -- TLA+ ガード:
+        --   stock[<<pid, lid>>] + qty <= MaxQuantity
+        if newStock > maxQuantity
+          then pure next  -- オーバーフロー防止: 解放しない
+          else do
+            let _ = execWithParams env.sql
+                  "UPDATE inventory SET quantity = ?, reserved = 0, updated_at = ? WHERE id = ?"
+                  [ unsafeToForeign newStock
+                  , unsafeToForeign (unwrap now)
+                  , unsafeToForeign inventoryId
+                  ]
+            pure next
 
   SyncToChannel channel (ThingId tid) qty k -> do
     now <- currentTimestamp
