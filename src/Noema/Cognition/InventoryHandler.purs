@@ -313,7 +313,7 @@ applyDelta (QuantityDelta d) (Quantity q) = Quantity (q + d)
 
 -- | デフォルトの在庫情報
 -- |
--- | 注: subjectId は Thing を包摂する Guardian を表す。
+-- | 注: subjectId は Subject を表す。Thing は Subject に包摂される。
 -- | 旧設計の locationId は subjectId に統合された。
 defaultStockInfo :: ThingId -> SubjectId -> StockInfo
 defaultStockInfo tid sid =

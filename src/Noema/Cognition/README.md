@@ -58,7 +58,7 @@ import Noema.Core.Locus (ThingId(..), mkSubjectId)
 main :: Effect Unit
 main = do
   let env = mkInventoryEnv sqlStorage
-  -- 注: SubjectId は Thing を包摂する Guardian（倉庫、店舗など）を識別
+  -- 注: SubjectId は Subject（倉庫、店舗など）を識別。Thing は Subject に包摂される
   let intent = getStock (ThingId "product-1") (mkSubjectId "warehouse-1")
 
   -- runIntent: Intent → Effect（忘却）

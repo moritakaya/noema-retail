@@ -31,7 +31,7 @@ data InventoryF a
 
 ```purescript
 -- 新: f :: Type -> Type -> Type
--- 注: SubjectId は Thing を包摂する Guardian（倉庫、店舗など）を識別
+-- 注: SubjectId は Subject（倉庫、店舗など）を識別。Thing は Subject に包摂される
 data InventoryF i o
   = GetStock ThingId SubjectId (i -> Unit) (StockInfo -> o)
   | AdjustStock ThingId SubjectId (i -> QuantityDelta) (Quantity -> o)

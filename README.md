@@ -147,7 +147,7 @@ wrangler deploy --env production   # 本番環境
 | `/api/inventory/reserve` | POST | 在庫予約 |
 | `/api/sync/:channel/:productId` | POST | チャネル同期 |
 
-> 注: `subjectId` は Thing を包摂する Guardian（倉庫、店舗など）を識別する。
+> 注: `subjectId` は Subject（倉庫、店舗など）を識別する。Thing は Subject に包摂される。
 > 旧 API の `locationId` は `subjectId` に統合された。
 
 ## セットアップ

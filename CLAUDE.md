@@ -223,7 +223,7 @@ Noema は既存の設計手法（DDD, Clean Architecture 等）に依存しな�
 ```
 Nomos（大域意志）: 法律、商習慣 → Sediment の解釈を規定
 Subject（主体）: 意志を持つ → DO として実装
-Thing（物）: 意志を持たない → Guardian Subject に包摂される
+Thing（物）: 意志を持たない → Subject に包摂される
 ```
 
 ### グロタンディーク構成
@@ -236,10 +236,10 @@ Base 圏: DO のネットワーク（水平射 = RPC）
 Fiber 圏: DO 内の状態空間（垂直射 = Sediment）
 ```
 
-### Thing = Guardian の不変量
+### Thing = Subject の包摂
 
-Thing 自体は DO ではない。Guardian DO が Thing を「包摂」する。
-- Thing の同一性 = Guardian DO の id
+Thing 自体は DO ではない。Subject が Thing を「包摂」する。
+- Thing の同一性 = 包摂する Subject の id
 - Thing の状態 = Sediment の積分値
 
 ## 四つの語彙
@@ -291,5 +291,5 @@ Termination（解除）: B は A を解除
 
 1. **Sediment のみ**: UPDATE 禁止、INSERT のみ
 2. **Arrow 維持**: ArrowChoice 禁止、分岐は Handler で
-3. **Source of Truth**: 所有権等は Thing Guardian が保持
+3. **Source of Truth**: 所有権等は Thing を包摂する Subject が保持
 4. **View**: Container の Contents はキャッシュ

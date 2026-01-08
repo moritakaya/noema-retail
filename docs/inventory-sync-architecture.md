@@ -106,7 +106,7 @@ CREATE TABLE product_channel (
 
 ```sql
 -- 統合在庫（Single Source of Truth）
--- 注: subject_id は Thing を包摂する Guardian（倉庫、店舗など）を識別
+-- 注: subject_id は Subject（倉庫、店舗など）を識別。Thing は Subject に包摂される
 CREATE TABLE inventory (
     id TEXT PRIMARY KEY,
     product_id TEXT NOT NULL REFERENCES product(id),
@@ -226,7 +226,7 @@ CREATE TABLE channel_sync (
 ### 6.1 在庫操作（InventoryF）
 
 ```purescript
--- 注: SubjectId は Thing を包摂する Guardian（倉庫、店舗など）を識別
+-- 注: SubjectId は Subject（倉庫、店舗など）を識別。Thing は Subject に包摂される
 data InventoryF next
   -- 在庫操作
   = GetStock ProductId SubjectId (Quantity -> next)

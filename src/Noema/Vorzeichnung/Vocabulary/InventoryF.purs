@@ -11,7 +11,7 @@
 -- | ## 設計変更: LocationId → SubjectId
 -- |
 -- | 旧設計では LocationId（倉庫、店舗）が在庫の位置を表していた。
--- | 新設計では SubjectId（Guardian）が Thing を包摂し、
+-- | 新設計では Subject が Thing を包摂し、
 -- | その Subject の位置が Thing の位置を決定する。
 -- |
 -- | ## Monad版との違い
@@ -63,7 +63,7 @@ import Noema.Presheaf.Channel (Channel(..))
 
 -- | 在庫情報
 -- |
--- | subjectId は Thing を包摂する Guardian（倉庫、店舗など）を表す。
+-- | subjectId は Subject（倉庫、店舗など）を表す。Thing は Subject に包摂される。
 -- | 旧設計の locationId は subjectId に統合された。
 type StockInfo =
   { thingId :: ThingId
@@ -93,7 +93,7 @@ derive instance eqSyncResult :: Eq SyncResult
 -- | 語彙自体は分岐の概念を持たない。
 -- |
 -- | 注: LocationId は SubjectId に統合された。
--- | SubjectId は Thing を包摂する Guardian を表す。
+-- | SubjectId は Subject を表す。Thing は Subject に包摂される。
 data InventoryF a
   -- | 在庫取得
   = GetStock ThingId SubjectId (StockInfo -> a)

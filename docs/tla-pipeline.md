@@ -128,7 +128,7 @@ GitHub Actions が以下のタイミングで自動実行:
 
 ```purescript
 -- 販売Intent: 在庫を1減らす
--- 注: SubjectId は Thing を包摂する Guardian（倉庫、店舗など）を識別
+-- 注: SubjectId は Subject（倉庫、店舗など）を識別。Thing は Subject に包摂される
 saleIntent :: ThingId -> SubjectId -> Intent' InventoryF Unit Quantity
 saleIntent tid sid =
   getStock tid sid

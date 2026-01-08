@@ -10,10 +10,10 @@
 -- | ## 存在論的構造
 -- |
 -- | - Subject: 意志を持つ主体（DO として実装）
--- | - Thing: 意志を持たない物（Guardian Subject に包摂）
+-- | - Thing: 意志を持たない物（Subject に包摂）
 -- | - Contract: 契約（DO として実装）
 -- |
--- | 注: LocationId は廃止。Location は SubjectId（ThingGuardian）に統合。
+-- | 注: LocationId は廃止。Subject が Thing を包摂し、その位置を決定する。
 module Noema.Core.Locus
   ( -- * Locus（空間座標）
     LocusId(..)
@@ -78,7 +78,7 @@ mkLocusId = LocusId
 -- | Subject の識別子（意志を持つ主体）
 -- |
 -- | Subject は DO として実装される。
--- | ThingGuardian として Thing を包摂し、その Location を決定する。
+-- | Subject は Thing を包摂し、その位置を決定する。
 -- |
 -- | 注: 旧設計の LocationId は SubjectId に統合された。
 newtype SubjectId = SubjectId LocusId
@@ -102,8 +102,8 @@ unwrapSubjectId (SubjectId (LocusId s)) = s
 
 -- | Thing の識別子（意志を持たない物）
 -- |
--- | Thing は DO ではない。Guardian Subject に包摂される。
--- | Thing の同一性は Guardian DO の id で決まる。
+-- | Thing は DO ではない。Subject に包摂される。
+-- | Thing の同一性は包摂する Subject の id で決まる。
 newtype ThingId = ThingId String
 
 derive instance Newtype ThingId _

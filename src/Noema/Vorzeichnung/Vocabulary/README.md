@@ -109,7 +109,7 @@ proposeNewContract = proposeContract
 ### 設計変更: LocationId → SubjectId
 
 旧設計では `LocationId`（倉庫、店舗）が在庫の位置を表していた。
-新設計では `SubjectId`（Guardian）が Thing を包摂し、
+新設計では Subject が Thing を包摂し、
 その Subject の位置が Thing の位置を決定する。
 
 ```purescript
@@ -124,7 +124,7 @@ getStock :: ThingId -> SubjectId -> InventoryIntent Unit StockInfo
 
 1. **Sediment のみ**: UPDATE 禁止、INSERT のみ
 2. **Arrow 維持**: ArrowChoice 禁止、分岐は Handler で
-3. **Source of Truth**: 所有権等は Thing Guardian が保持
+3. **Source of Truth**: 所有権等は Thing を包摂する Subject が保持
 4. **View**: Container の Contents はキャッシュ
 
 ## 関連

@@ -25,14 +25,14 @@ import Noema.Core.World (World, IntentContext)
 -- | Subject の種別
 data SubjectKind
   = ContractParty    -- 契約主体（売主、買主など）
-  | ThingGuardian    -- Thing の守護者（倉庫、店舗など）
+  | ThingHolder      -- Thing を包摂する Subject（倉庫、店舗など）
   | SystemAgent      -- システムエージェント（自動処理）
 
 derive instance eqSubjectKind :: Eq SubjectKind
 
 instance showSubjectKind :: Show SubjectKind where
   show ContractParty = "ContractParty"
-  show ThingGuardian = "ThingGuardian"
+  show ThingHolder = "ThingHolder"
   show SystemAgent = "SystemAgent"
 
 -- | Subject の状態

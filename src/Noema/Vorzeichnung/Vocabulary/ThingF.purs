@@ -1,12 +1,12 @@
 -- | Noema Vocabulary: ThingF（意志を持たない物）
 -- |
--- | Thing は意志を持たない物。Guardian Subject に包摂され、
+-- | Thing は意志を持たない物。Subject に包摂され、
 -- | Subject^op → Set として観測される。
 -- |
 -- | ## 圏論的位置づけ
 -- |
 -- | ThingF は Fiber 圏の操作を定義する Functor。
--- | Thing の同一性は Guardian DO の id で決まる。
+-- | Thing の同一性は包摂する Subject の id で決まる。
 -- |
 -- | ## 時間構造（Husserl）
 -- |

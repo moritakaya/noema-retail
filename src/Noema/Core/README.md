@@ -36,7 +36,7 @@ newtype LocusId = LocusId String
 -- 注: 旧設計の LocationId は SubjectId に統合された
 newtype SubjectId = SubjectId LocusId
 
--- Thing: 意志を持たない物（DO ではない、Guardian に包摂）
+-- Thing: 意志を持たない物（DO ではない、Subject に包摂）
 newtype ThingId = ThingId String
 
 -- Contract: 契約（DO として実装）
@@ -58,13 +58,12 @@ newtype QuantityDelta = QuantityDelta Int
 ## 設計変更: LocationId → SubjectId
 
 旧設計では `LocationId`（倉庫、店舗）が在庫の位置を表していた。
-新設計では `SubjectId`（Guardian）が Thing を包摂し、
-その Subject の位置が Thing の位置を決定する。
+新設計では Subject が Thing を包摂し、その Subject の位置が Thing の位置を決定する。
 
 これにより：
 - 型の重複が解消された
 - AVDC 構造との整合性が向上した
-- Thing は常に Guardian Subject に包摂されるという設計が明確になった
+- Thing は常に Subject に包摂されるという設計が明確になった
 
 ### 変更一覧
 
@@ -83,7 +82,7 @@ Nomos（大域意志）
   Sediment の解釈を規定する「法」
         ↓ 規定
 Subject（意志を持つ主体）    Thing（意志を持たない物）
-  DO として実装              Guardian Subject に包摂
+  DO として実装              Subject に包摂される
   能動的に Sediment を沈殿   Subject^op → Set として観測
 ```
 
@@ -97,7 +96,7 @@ import Noema.Core.World (NomosVersion(..), mkWorld)
 seller :: SubjectId
 seller = SubjectId (LocusId "seller-001")
 
--- Thing の作成（Guardian に包摂される）
+-- Thing の作成（Subject に包摂される）
 product :: ThingId
 product = ThingId "product-sku-123"
 

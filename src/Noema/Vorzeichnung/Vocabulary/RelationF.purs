@@ -10,7 +10,7 @@
 -- |
 -- | ## Source of Truth
 -- |
--- | 所有権等の Master Data は Thing Guardian が保持。
+-- | 所有権等の Master Data は Thing を包摂する Subject が保持。
 -- | Container の Contents は View（キャッシュ）。
 module Noema.Vorzeichnung.Vocabulary.RelationF
   ( RelationKind(..)
@@ -40,7 +40,7 @@ import Noema.Core.Locus
 data RelationKind
   -- 包摂関係（空間的）
   = Contains      -- Subject が Thing を物理的に含む
-  | Guards        -- Subject が Thing の Guardian である
+  | Guards        -- Subject が Thing を包摂する
 
   -- 権利関係（法的）
   | Owns          -- 所有権
