@@ -52,13 +52,14 @@ noema-core (DSL)              noema-retail (実装)
 ├── Intent / Handler          ├── HttpF / StorageF（インフラ）
 ├── AVDC 語彙                 ├── Handlers（具体実装）
 │   ├── SubjectF              ├── Channel Adapters
-│   ├── ThingF                ├── Platform/Cloudflare
+│   ├── ThingF                ├── InventoryAttractor（Retail固有DO）
 │   ├── RelationF             └── TlaPlus/
 │   ├── ContractF
 │   └── NoemaF
 ├── Core/Locus, World
 ├── Sedimentation/Attractor, Seal
-└── Presheaf/Channel, ChannelAdapter
+├── Presheaf/Channel, ChannelAdapter
+└── Platform/Cloudflare/FFI, Router  # 汎用インフラ
 ```
 
 **依存方向**: `noema-retail` → `noema-core`（逆方向は禁止）
@@ -70,28 +71,37 @@ packages/
 ├── noema-core/                    # DSL コア
 │   ├── src/
 │   │   ├── Control/Arrow.purs     # Arrow 型クラス
-│   │   └── Noema/
-│   │       ├── Core/              # 基本型
-│   │       │   ├── Locus.purs     # 空間座標
-│   │       │   └── World.purs     # 法座標
-│   │       ├── Vorzeichnung/      # 予描図式（左随伴）
-│   │       │   ├── Intent.purs    # Arrow-based Intent
-│   │       │   ├── FreerArrow.purs
-│   │       │   ├── Combinators.purs
-│   │       │   └── Vocabulary/    # AVDC 語彙
-│   │       │       ├── SubjectF.purs
-│   │       │       ├── ThingF.purs
-│   │       │       ├── RelationF.purs
-│   │       │       ├── ContractF.purs
-│   │       │       └── NoemaF.purs
-│   │       ├── Cognition/
-│   │       │   └── Handler.purs   # Handler 基底型
-│   │       ├── Sedimentation/
-│   │       │   ├── Attractor.purs
-│   │       │   └── Seal.purs
-│   │       └── Presheaf/
-│   │           ├── Channel.purs
-│   │           └── ChannelAdapter.purs
+│   │   ├── Noema/
+│   │   │   ├── Core/              # 基本型
+│   │   │   │   ├── Locus.purs     # 空間座標
+│   │   │   │   └── World.purs     # 法座標
+│   │   │   ├── Vorzeichnung/      # 予描図式（左随伴）
+│   │   │   │   ├── Intent.purs    # Arrow-based Intent
+│   │   │   │   ├── FreerArrow.purs
+│   │   │   │   ├── Combinators.purs
+│   │   │   │   └── Vocabulary/    # AVDC 語彙
+│   │   │   │       ├── SubjectF.purs
+│   │   │   │       ├── ThingF.purs
+│   │   │   │       ├── RelationF.purs
+│   │   │   │       ├── ContractF.purs
+│   │   │   │       └── NoemaF.purs
+│   │   │   ├── Cognition/
+│   │   │   │   └── Handler.purs   # Handler 基底型
+│   │   │   ├── Sedimentation/
+│   │   │   │   ├── Attractor.purs
+│   │   │   │   └── Seal.purs
+│   │   │   └── Presheaf/
+│   │   │       ├── Channel.purs
+│   │   │       └── ChannelAdapter.purs
+│   │   └── Platform/Cloudflare/   # 汎用 Cloudflare インフラ
+│   │       ├── Router.purs        # HTTP ルーター
+│   │       └── FFI/               # Workers API バインディング
+│   │           ├── DurableObject.purs
+│   │           ├── Request.purs
+│   │           ├── Response.purs
+│   │           ├── SqlStorage.purs
+│   │           ├── Fetch.purs
+│   │           └── Crypto.purs
 │   └── spago.yaml
 │
 └── noema-retail/                  # 小売実装
@@ -114,10 +124,11 @@ packages/
     │   │   ├── Extract.purs
     │   │   └── Feedback.purs
     │   └── Platform/Cloudflare/
-    │       ├── InventoryAttractor.purs
-    │       ├── Router.purs
-    │       └── FFI/
+    │       └── InventoryAttractor.purs  # Retail 固有の DO
     └── spago.yaml
+
+ffi/
+└── runtime.js                     # Cloudflare Workers エントリーポイント
 ```
 
 ## 技術スタック

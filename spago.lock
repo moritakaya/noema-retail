@@ -6,6 +6,7 @@
         "core": {
           "dependencies": [
             "aff",
+            "aff-promise",
             "argonaut-core",
             "arrays",
             "assert",
@@ -17,9 +18,11 @@
             "exists",
             "foldable-traversable",
             "foreign",
+            "foreign-object",
             "integers",
             "maybe",
             "newtype",
+            "nullable",
             "numbers",
             "ordered-collections",
             "prelude",
@@ -30,6 +33,7 @@
           ],
           "build_plan": [
             "aff",
+            "aff-promise",
             "argonaut-core",
             "arrays",
             "assert",
@@ -59,6 +63,7 @@
             "maybe",
             "newtype",
             "nonempty",
+            "nullable",
             "numbers",
             "ordered-collections",
             "orders",

@@ -57,18 +57,21 @@ packages/
 ├── noema-core/                    # DSL コア
 │   ├── src/
 │   │   ├── Control/Arrow.purs     # Arrow 型クラス
-│   │   └── Noema/
-│   │       ├── Core/              # 基本型（Locus, World）
-│   │       ├── Vorzeichnung/      # 予描図式（Intent, Combinators）
-│   │       │   └── Vocabulary/    # AVDC 語彙
-│   │       │       ├── SubjectF.purs
-│   │       │       ├── ThingF.purs
-│   │       │       ├── RelationF.purs
-│   │       │       ├── ContractF.purs
-│   │       │       └── NoemaF.purs
-│   │       ├── Cognition/Handler.purs
-│   │       ├── Sedimentation/     # Attractor, Seal
-│   │       └── Presheaf/          # Channel, ChannelAdapter
+│   │   ├── Noema/
+│   │   │   ├── Core/              # 基本型（Locus, World）
+│   │   │   ├── Vorzeichnung/      # 予描図式（Intent, Combinators）
+│   │   │   │   └── Vocabulary/    # AVDC 語彙
+│   │   │   │       ├── SubjectF.purs
+│   │   │   │       ├── ThingF.purs
+│   │   │   │       ├── RelationF.purs
+│   │   │   │       ├── ContractF.purs
+│   │   │   │       └── NoemaF.purs
+│   │   │   ├── Cognition/Handler.purs
+│   │   │   ├── Sedimentation/     # Attractor, Seal
+│   │   │   └── Presheaf/          # Channel, ChannelAdapter
+│   │   └── Platform/Cloudflare/   # 汎用 Workers インフラ
+│   │       ├── Router.purs
+│   │       └── FFI/               # DurableObject, Request, Response, etc.
 │   └── spago.yaml
 │
 └── noema-retail/                  # 小売実装
@@ -84,8 +87,12 @@ packages/
     │   │   │   └── StorageHandler.purs
     │   │   └── Presheaf/          # Rakuten, Smaregi, Yahoo, Stripe
     │   ├── TlaPlus/               # TLA+ 連携
-    │   └── Platform/Cloudflare/   # DO 実装、Router、FFI
+    │   └── Platform/Cloudflare/
+    │       └── InventoryAttractor.purs  # Retail 固有の DO
     └── spago.yaml
+
+ffi/
+└── runtime.js                     # Cloudflare Workers エントリーポイント
 
 tlaplus/
 └── specs/                          # TLA+ 形式検証

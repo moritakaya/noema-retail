@@ -23,6 +23,9 @@ package:
     - numbers
     - console
     - assert
+    - aff-promise
+    - nullable
+    - foreign-object
   test:
     main: Test.Core.Main
     dependencies: []
