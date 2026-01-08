@@ -77,22 +77,23 @@ rmdir src/Noema/Domain
 -- 新: module Noema.Vorzeichnung.Vocabulary.InventoryF
 ```
 
-### 2.3 RetailF（余積）の作成
+### 2.3 NoemaF（統合語彙）の作成
 
-`src/Noema/Vorzeichnung/Vocabulary/RetailF.purs` を新規作成:
+`src/Noema/Vorzeichnung/Vocabulary/NoemaF.purs` を新規作成:
 
 ```purescript
-module Noema.Vorzeichnung.Vocabulary.RetailF where
+module Noema.Vorzeichnung.Vocabulary.NoemaF where
 
 import Prelude
 import Data.Functor.Coproduct (Coproduct)
 
-import Noema.Vorzeichnung.Vocabulary.InventoryF (InventoryF)
-import Noema.Vorzeichnung.Vocabulary.HttpF (HttpF)
-import Noema.Vorzeichnung.Vocabulary.StorageF (StorageF)
+import Noema.Vorzeichnung.Vocabulary.SubjectF (SubjectF)
+import Noema.Vorzeichnung.Vocabulary.ThingF (ThingF)
+import Noema.Vorzeichnung.Vocabulary.RelationF (RelationF)
+import Noema.Vorzeichnung.Vocabulary.ContractF (ContractF)
 
--- | 語彙の余積 = Noema の「意志のアルファベット」
-type RetailF = Coproduct InventoryF (Coproduct HttpF StorageF)
+-- | 語彙の余積 = Noema の「意志のアルファベット」（AVDC構造）
+type NoemaF i = Coproduct (SubjectF i) (Coproduct (ThingF i) (Coproduct (RelationF i) (ContractF i)))
 ```
 
 ---
@@ -115,28 +116,22 @@ rmdir src/Noema/Handler
 -- 新: module Noema.Cognition.InventoryHandler
 ```
 
-### 3.2 Collapse（崩落）の新規作成
+### 3.2 Handler（解釈）の新規作成
 
-`src/Noema/Cognition/Collapse.purs`:
+`src/Noema/Cognition/Handler.purs`:
 
 ```purescript
-module Noema.Cognition.Collapse where
+module Noema.Cognition.Handler where
 
 import Prelude
-import Control.Monad.Free (foldFree)
-import Data.Functor.Coproduct (Coproduct, coproduct)
 
-import Noema.Vorzeichnung.Freer (Intent)
-import Noema.Vorzeichnung.Vocabulary.RetailF (RetailF)
+-- | Handler: Functor から Effect への自然変換
+-- | 圏論的には: A-algebra homomorphism
+type Handler f m = forall a. f a -> m a
 
--- | 意志の構造を事実へ崩落させる
--- | 圏論的には: 忘却関手 U による解釈
-collapse 
-  :: forall m
-   . Monad m 
-  => (forall a. RetailF a -> m a) 
-  -> Intent ~> m
-collapse handler = foldFree handler
+-- | Handler を実行
+runHandler :: forall f m a. Handler f m -> f a -> m a
+runHandler h = h
 ```
 
 ---
@@ -348,17 +343,23 @@ noema-retail/
 │   ├── Main.purs
 │   │
 │   ├── Noema/
-│   │   ├── Vorzeichnung/           # 予描図式（左随伴 Free F）
-│   │   │   ├── Freer.purs
+│   │   ├── Vorzeichnung/           # 予描図式（左随伴 Arrow Effects）
+│   │   │   ├── Intent.purs
+│   │   │   ├── FreerArrow.purs
+│   │   │   ├── Combinators.purs
 │   │   │   └── Vocabulary/
-│   │   │       ├── Base.purs
+│   │   │       ├── SubjectF.purs
+│   │   │       ├── ThingF.purs
+│   │   │       ├── RelationF.purs
+│   │   │       ├── ContractF.purs
+│   │   │       ├── NoemaF.purs
+│   │   │       ├── Constructors.purs
 │   │   │       ├── InventoryF.purs
 │   │   │       ├── HttpF.purs
-│   │   │       ├── StorageF.purs
-│   │   │       └── RetailF.purs
+│   │   │       └── StorageF.purs
 │   │   │
 │   │   ├── Cognition/              # 認知（右随伴 Forgetful U）
-│   │   │   ├── Collapse.purs
+│   │   │   ├── Handler.purs
 │   │   │   ├── InventoryHandler.purs
 │   │   │   └── StorageHandler.purs
 │   │   │

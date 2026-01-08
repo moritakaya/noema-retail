@@ -37,7 +37,6 @@ NoemaF = SubjectF + ThingF + RelationF + ContractF
 | `InventoryF.purs` | 在庫操作 | GetStock, SetStock, Reserve（SubjectId を使用） |
 | `HttpF.purs` | HTTP 操作 | Fetch, Request, Response |
 | `StorageF.purs` | Storage 操作 | Get, Put, Delete |
-| `RetailF.purs` | 統合語彙（レガシー） | InventoryF + HttpF + StorageF |
 
 ## ThingF の時間構造（Husserl）
 

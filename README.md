@@ -65,8 +65,7 @@ src/
 │   │       ├── Constructors.purs   # スマートコンストラクタ
 │   │       ├── InventoryF.purs     # 在庫操作
 │   │       ├── HttpF.purs          # HTTP 操作
-│   │       ├── StorageF.purs       # Storage 操作
-│   │       └── RetailF.purs        # レガシー余積
+│   │       └── StorageF.purs       # Storage 操作
 │   │
 │   ├── Cognition/                  # 認知・実行（右随伴）
 │   │   ├── Handler.purs            # Handler 基底型
