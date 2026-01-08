@@ -46,12 +46,15 @@
 ```
 src/
 ├── Noema/                          # Noema DSL 本体
+│   ├── Core/                       # 基本型と座標系
+│   │   ├── Locus.purs              # 空間座標（SubjectId, ThingId 等）
+│   │   └── World.purs              # 法座標（Nomos, Context）
+│   │
 │   ├── Vorzeichnung/               # 意図の構造（左随伴）
 │   │   ├── Intent.purs             # Arrow-based Intent
 │   │   ├── FreerArrow.purs         # Arrow 実装
 │   │   ├── Combinators.purs        # Arrow コンビネータ
 │   │   └── Vocabulary/             # ドメイン語彙
-│   │       ├── Base.purs           # 基本型・識別子
 │   │       ├── InventoryF.purs     # 在庫操作
 │   │       ├── HttpF.purs          # HTTP 操作
 │   │       ├── StorageF.purs       # Storage 操作
@@ -68,6 +71,7 @@ src/
 │   │   └── Cryostasis.purs         # 凍結（Alarm 待機）
 │   │
 │   └── Presheaf/                   # 表現（Channel^op → Set）
+│       ├── Channel.purs            # Channel 圏の対象
 │       ├── ChannelAdapter.purs     # 基底型クラス
 │       ├── Smaregi.purs            # スマレジ連携
 │       ├── Rakuten.purs            # 楽天市場連携
@@ -137,11 +141,14 @@ wrangler deploy --env production   # 本番環境
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/inventory/:productId/:locationId` | GET | 在庫取得 |
+| `/api/inventory/:productId/:subjectId` | GET | 在庫取得 |
 | `/api/inventory` | POST | 在庫作成/更新 |
 | `/api/inventory/adjust` | POST | 在庫調整 |
 | `/api/inventory/reserve` | POST | 在庫予約 |
 | `/api/sync/:channel/:productId` | POST | チャネル同期 |
+
+> 注: `subjectId` は Thing を包摂する Guardian（倉庫、店舗など）を識別する。
+> 旧 API の `locationId` は `subjectId` に統合された。
 
 ## セットアップ
 
