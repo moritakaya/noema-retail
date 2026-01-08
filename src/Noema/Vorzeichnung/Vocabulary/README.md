@@ -11,85 +11,98 @@
 - **構成**: 複数の Vocabulary は余積（Coproduct）で統合
 
 ```
-Vocabulary = InventoryF + HttpF + StorageF + ...
-           = Σ_i F_i (余積)
+NoemaF = SubjectF + ThingF + RelationF + ContractF
+       = Coproduct SubjectF (Coproduct ThingF (Coproduct RelationF ContractF))
 ```
 
-各 Vocabulary F に対して、Freer Arrow による自由構成：
+## 四つの語彙（AVDC 構造）
 
-```
-liftF : F a → Intent F Unit a
-```
+| 語彙 | 圏論的位置 | 操作対象 |
+|------|-----------|---------|
+| SubjectF | Base 圏 | 意志を持つ主体（DO） |
+| ThingF | Fiber 圏 | もの・こと（属性×位置×時間）|
+| RelationF | Span 圏 | Subject-Thing 間の関係 |
+| ContractF | 規定の圏 | 権利・義務、契約間関係 |
 
 ## 主要コンポーネント
 
 | ファイル | 語彙 | 操作 |
 |---------|------|------|
-| `Base.purs` | 基本型 | Timestamp, Quantity, etc. |
-| `InventoryF.purs` | 在庫操作 | GetStock, SetStock, Reserve, etc. |
+| `SubjectF.purs` | 意志主体 | CreateSubject, GetSubject, SendIntent |
+| `ThingF.purs` | 物・時間 | GetProperty, SetProperty, GetPrimal, RegisterProtention |
+| `RelationF.purs` | 関係性 | AddRelation, GetRelationsFrom, RecordOwnershipTransfer |
+| `ContractF.purs` | 契約 | ProposeContract, AcceptContract, FulfillObligation |
+| `NoemaF.purs` | 統合語彙 | 全 Vocabulary の余積 |
+| `Constructors.purs` | スマートコンストラクタ | Intent への持ち上げ |
+| `InventoryF.purs` | 在庫操作（レガシー） | GetStock, SetStock, Reserve |
 | `HttpF.purs` | HTTP 操作 | Fetch, Request, Response |
 | `StorageF.purs` | Storage 操作 | Get, Put, Delete |
-| `RetailF.purs` | 統合語彙 | 全 Vocabulary の余積 |
+| `RetailF.purs` | 統合語彙（レガシー） | InventoryF + HttpF + StorageF |
 
-## Functor としての Vocabulary
+## ThingF の時間構造（Husserl）
 
-```purescript
--- InventoryF: 在庫操作の Functor
-data InventoryF next
-  = GetStock ThingId LocationId (StockInfo -> next)
-  | SetStock ThingId LocationId Quantity next
-  | AdjustStock ThingId LocationId QuantityDelta (Quantity -> next)
-  | ReserveStock ThingId LocationId Quantity (Boolean -> next)
-  | ReleaseReservation ThingId LocationId ReservationId next
-  | SyncToChannel Channel ThingId Quantity (SyncResult -> next)
-  | SyncFromChannel Channel ThingId (StockInfo -> next)
-
-derive instance Functor InventoryF
+```
+Retention（把持）: 過去の Snapshot
+Primal（原印象）: 現在の状態
+Protention（予持）: 未来の Pending Intent（Alarm 連動）
 ```
 
-## スマートコンストラクタ
+## RelationKind 一覧
 
-各操作は Intent に持ち上げるスマートコンストラクタを提供：
-
-```purescript
--- 在庫取得
-getStock :: ThingId -> LocationId -> InventoryIntent Unit StockInfo
-getStock tid lid = liftEffect (GetStock tid lid identity)
-
--- 在庫設定
-setStock :: ThingId -> LocationId -> Quantity -> InventoryIntent Unit Unit
-setStock tid lid qty = liftEffect (SetStock tid lid qty unit)
+```
+包摂: Contains, Guards
+権利: Owns, Possesses, Claims, Secures, SharedBy
+引当: Reserves, Commits, Intends
+移動: Transports, Consigns
+構成: ComposedOf, BundledWith, Substitutes
+観測: Observes, Tracks
+代理: ActsFor
+制限: Restricts
 ```
 
-## TLA+ 対応
+## Contract 間の関係
 
-各 Vocabulary 操作は TLA+ Action に対応：
+```
+Prerequisite（前提）: B は A がないと成立しない
+Subordinate（従属）: A 終了で B も終了
+Consideration（対価）: A の履行が B の対価
+Security（担保）: B は A の履行を担保
+Amendment（変更）: B は A を変更
+Termination（解除）: B は A を解除
+```
 
-| PureScript | TLA+ |
-|------------|------|
-| `getStock` | （観測のみ、状態変更なし） |
-| `setStock` | `SetStock(pid, lid, qty)` |
-| `adjustStock` | `AdjustStock(pid, lid, delta)` |
-| `reserveStock` | `ReserveStock(pid, lid, qty)` |
-| `releaseReservation` | `ReleaseReservation(pid, lid, qty)` |
-
-## 使用例
+## スマートコンストラクタの使用例
 
 ```purescript
-import Noema.Vorzeichnung.Vocabulary.InventoryF
-  (getStock, setStock, adjustStock)
+import Noema.Vorzeichnung.Vocabulary.Constructors
 
--- 在庫を確認して調整する Intent
-adjustInventory :: ThingId -> LocationId -> InventoryIntent Unit Quantity
-adjustInventory tid lid =
-  getStock tid lid
-    >>> arr (_.quantity)
-    >>> arr (\q -> QuantityDelta (if q > 100 then -10 else 10))
-    >>> adjustStock tid lid
+-- Subject を作成
+createNewSubject :: NoemaIntent SubjectInit SubjectId
+createNewSubject = createSubject
+
+-- Thing の状態を取得
+getInventory :: ThingId -> NoemaIntent Unit ThingState
+getInventory tid = getPrimal tid
+
+-- 関係を追加
+establishOwnership :: NoemaIntent RelationInit RelationId
+establishOwnership = addRelation
+
+-- 契約を提案
+proposeNewContract :: NoemaIntent ContractProposal ContractId
+proposeNewContract = proposeContract
 ```
+
+## 実装規則
+
+1. **Sediment のみ**: UPDATE 禁止、INSERT のみ
+2. **Arrow 維持**: ArrowChoice 禁止、分岐は Handler で
+3. **Source of Truth**: 所有権等は Thing Guardian が保持
+4. **View**: Container の Contents はキャッシュ
 
 ## 関連
 
 - [../](../README.md) - Vorzeichnung 親モジュール
+- [../../Core/](../../Core/README.md) - 基本型と座標系
 - [../../Cognition/](../../Cognition/README.md) - Handler 実装
 - [../../../../tlaplus/](../../../../tlaplus/README.md) - TLA+ 仕様
