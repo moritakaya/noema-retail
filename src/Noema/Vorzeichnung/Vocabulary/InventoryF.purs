@@ -8,6 +8,12 @@
 -- | - 分岐を含まない純粋な操作
 -- | - Presheaf Inventory : Channel^op → Set の基盤
 -- |
+-- | ## 設計変更: LocationId → SubjectId
+-- |
+-- | 旧設計では LocationId（倉庫、店舗）が在庫の位置を表していた。
+-- | 新設計では SubjectId（Guardian）が Thing を包摂し、
+-- | その Subject の位置が Thing の位置を決定する。
+-- |
 -- | ## Monad版との違い
 -- |
 -- | do記法の代わりに >>> 記法を使用:
@@ -15,25 +21,24 @@
 -- | ```purescript
 -- | -- ❌ Monad版（分岐可能）
 -- | monadicIntent = do
--- |   stock <- getStock tid lid
+-- |   stock <- getStock tid sid
 -- |   if stock.available > Quantity 0
--- |     then adjustStock tid lid (QuantityDelta (-1))
+-- |     then adjustStock tid sid (QuantityDelta (-1))
 -- |     else pure stock
 -- |
 -- | -- ✅ Arrow版（分岐禁止）
 -- | arrowIntent =
--- |   getStock tid lid
+-- |   getStock tid sid
 -- |   >>> arrIntent _.available
 -- | ```
 module Noema.Vorzeichnung.Vocabulary.InventoryF
   ( InventoryF(..)
   , InventoryIntent
-  -- Types
-  , Quantity(..)
-  , QuantityDelta(..)
-  , ThingId(..)
-  , LocationId(..)
-  , Channel(..)
+  -- Types (re-exported from Core/Locus)
+  , module Noema.Core.Locus
+  -- Types (re-exported from Presheaf/Channel)
+  , module Noema.Presheaf.Channel
+  -- Local types
   , SyncResult(..)
   , StockInfo
   -- Smart constructors
@@ -48,67 +53,21 @@ module Noema.Vorzeichnung.Vocabulary.InventoryF
 
 import Prelude
 
-import Data.Maybe (Maybe)
-import Data.Newtype (class Newtype)
-import Noema.Vorzeichnung.Intent (Intent, liftEffect, arrIntent)
-import Control.Category ((>>>))
+import Noema.Vorzeichnung.Intent (Intent, liftEffect)
+import Noema.Core.Locus (ThingId(..), SubjectId(..), Quantity(..), QuantityDelta(..), mkThingId, mkSubjectId, unwrapThingId, unwrapSubjectId, mkQuantity, unwrapQuantity, mkQuantityDelta, unwrapQuantityDelta)
+import Noema.Presheaf.Channel (Channel(..))
 
 -- ============================================================
--- 基本型
+-- 在庫情報
 -- ============================================================
-
--- | 物の識別子
-newtype ThingId = ThingId String
-
-derive instance eqThingId :: Eq ThingId
-derive instance ordThingId :: Ord ThingId
-derive newtype instance showThingId :: Show ThingId
-
--- | 場所の識別子
-newtype LocationId = LocationId String
-
-derive instance eqLocationId :: Eq LocationId
-derive instance ordLocationId :: Ord LocationId
-derive newtype instance showLocationId :: Show LocationId
-
--- | 数量（非負整数）
-newtype Quantity = Quantity Int
-
-derive instance Newtype Quantity _
-derive instance eqQuantity :: Eq Quantity
-derive instance ordQuantity :: Ord Quantity
-derive newtype instance showQuantity :: Show Quantity
-derive newtype instance semiringQuantity :: Semiring Quantity
-
--- | 数量の変化（正負あり）
-newtype QuantityDelta = QuantityDelta Int
-
-derive instance eqQuantityDelta :: Eq QuantityDelta
-derive newtype instance showQuantityDelta :: Show QuantityDelta
-derive newtype instance ringQuantityDelta :: Ring QuantityDelta
-
--- | チャネル（Presheaf の対象）
-data Channel
-  = Own       -- 自社（真実の源泉）
-  | Smaregi   -- スマレジ POS
-  | Rakuten   -- 楽天市場
-  | Yahoo     -- Yahoo!ショッピング
-  | Stripe    -- Stripe 決済
-
-derive instance eqChannel :: Eq Channel
-derive instance ordChannel :: Ord Channel
-
-instance showChannel :: Show Channel where
-  show Own = "Own"
-  show Smaregi = "Smaregi"
-  show Rakuten = "Rakuten"
-  show Yahoo = "Yahoo"
-  show Stripe = "Stripe"
 
 -- | 在庫情報
+-- |
+-- | subjectId は Thing を包摂する Guardian（倉庫、店舗など）を表す。
+-- | 旧設計の locationId は subjectId に統合された。
 type StockInfo =
   { thingId :: ThingId
-  , locationId :: LocationId
+  , subjectId :: SubjectId  -- 旧: locationId
   , quantity :: Quantity
   , reserved :: Quantity
   , available :: Quantity
@@ -132,25 +91,28 @@ derive instance eqSyncResult :: Eq SyncResult
 -- |
 -- | Arrow 制約（分岐禁止）は Intent レベルで強制される。
 -- | 語彙自体は分岐の概念を持たない。
+-- |
+-- | 注: LocationId は SubjectId に統合された。
+-- | SubjectId は Thing を包摂する Guardian を表す。
 data InventoryF a
   -- | 在庫取得
-  = GetStock ThingId LocationId (StockInfo -> a)
-  
+  = GetStock ThingId SubjectId (StockInfo -> a)
+
   -- | 在庫設定
-  | SetStock ThingId LocationId Quantity a
-  
+  | SetStock ThingId SubjectId Quantity a
+
   -- | 在庫調整（戻り値: 調整後の数量）
-  | AdjustStock ThingId LocationId QuantityDelta (Quantity -> a)
-  
+  | AdjustStock ThingId SubjectId QuantityDelta (Quantity -> a)
+
   -- | 在庫予約（戻り値: 予約成功か）
-  | ReserveStock ThingId LocationId Quantity (Boolean -> a)
-  
+  | ReserveStock ThingId SubjectId Quantity (Boolean -> a)
+
   -- | 予約解放
-  | ReleaseReservation ThingId LocationId String a
-  
+  | ReleaseReservation ThingId SubjectId String a
+
   -- | 外部チャネルへ同期
   | SyncToChannel Channel ThingId Quantity (SyncResult -> a)
-  
+
   -- | 外部チャネルから同期
   | SyncFromChannel Channel ThingId (StockInfo -> a)
 
@@ -171,42 +133,42 @@ type InventoryIntent a b = Intent InventoryF a b
 -- | 在庫を取得する Intent
 -- |
 -- | ```purescript
--- | getStock (ThingId "SKU-001") (LocationId "LOC-001")
+-- | getStock (ThingId "SKU-001") (SubjectId (LocusId "warehouse-001"))
 -- |   :: InventoryIntent Unit StockInfo
 -- | ```
-getStock :: ThingId -> LocationId -> InventoryIntent Unit StockInfo
-getStock tid lid = liftEffect (GetStock tid lid identity)
+getStock :: ThingId -> SubjectId -> InventoryIntent Unit StockInfo
+getStock tid sid = liftEffect (GetStock tid sid identity)
 
 -- | 在庫を設定する Intent
 -- |
 -- | ```purescript
--- | setStock (ThingId "SKU-001") (LocationId "LOC-001") (Quantity 100)
+-- | setStock (ThingId "SKU-001") (mkSubjectId "warehouse-001") (Quantity 100)
 -- |   :: InventoryIntent Unit Unit
 -- | ```
-setStock :: ThingId -> LocationId -> Quantity -> InventoryIntent Unit Unit
-setStock tid lid qty = liftEffect (SetStock tid lid qty unit)
+setStock :: ThingId -> SubjectId -> Quantity -> InventoryIntent Unit Unit
+setStock tid sid qty = liftEffect (SetStock tid sid qty unit)
 
 -- | 在庫を調整する Intent
 -- |
 -- | ```purescript
--- | adjustStock (ThingId "SKU-001") (LocationId "LOC-001") (QuantityDelta (-1))
+-- | adjustStock (ThingId "SKU-001") (mkSubjectId "warehouse-001") (QuantityDelta (-1))
 -- |   :: InventoryIntent Unit Quantity
 -- | ```
-adjustStock :: ThingId -> LocationId -> QuantityDelta -> InventoryIntent Unit Quantity
-adjustStock tid lid delta = liftEffect (AdjustStock tid lid delta identity)
+adjustStock :: ThingId -> SubjectId -> QuantityDelta -> InventoryIntent Unit Quantity
+adjustStock tid sid delta = liftEffect (AdjustStock tid sid delta identity)
 
 -- | 在庫を予約する Intent
 -- |
 -- | ```purescript
--- | reserveStock (ThingId "SKU-001") (LocationId "LOC-001") (Quantity 5)
+-- | reserveStock (ThingId "SKU-001") (mkSubjectId "warehouse-001") (Quantity 5)
 -- |   :: InventoryIntent Unit Boolean
 -- | ```
-reserveStock :: ThingId -> LocationId -> Quantity -> InventoryIntent Unit Boolean
-reserveStock tid lid qty = liftEffect (ReserveStock tid lid qty identity)
+reserveStock :: ThingId -> SubjectId -> Quantity -> InventoryIntent Unit Boolean
+reserveStock tid sid qty = liftEffect (ReserveStock tid sid qty identity)
 
 -- | 予約を解放する Intent
-releaseReservation :: ThingId -> LocationId -> String -> InventoryIntent Unit Unit
-releaseReservation tid lid rid = liftEffect (ReleaseReservation tid lid rid unit)
+releaseReservation :: ThingId -> SubjectId -> String -> InventoryIntent Unit Unit
+releaseReservation tid sid rid = liftEffect (ReleaseReservation tid sid rid unit)
 
 -- | 外部チャネルへ同期する Intent
 syncToChannel :: Channel -> ThingId -> Quantity -> InventoryIntent Unit SyncResult
@@ -223,9 +185,9 @@ syncFromChannel ch tid = liftEffect (SyncFromChannel ch tid identity)
 -- | 注文処理: 在庫確認 → 予約
 -- |
 -- | ```purescript
--- | processOrder :: ThingId -> LocationId -> Quantity -> InventoryIntent Unit Boolean
--- | processOrder tid lid qty =
--- |   getStock tid lid
+-- | processOrder :: ThingId -> SubjectId -> Quantity -> InventoryIntent Unit Boolean
+-- | processOrder tid sid qty =
+-- |   getStock tid sid
 -- |   >>> arrIntent (\info -> info.available >= qty)
 -- |   -- 注: この時点で分岐はできない！
 -- |   -- 結果は Boolean として返され、分岐は Handler 層で処理
@@ -234,9 +196,9 @@ syncFromChannel ch tid = liftEffect (SyncFromChannel ch tid identity)
 -- | 在庫同期: 取得 → チャネルへ送信
 -- |
 -- | ```purescript
--- | syncInventory :: ThingId -> LocationId -> Channel -> InventoryIntent Unit SyncResult
--- | syncInventory tid lid ch =
--- |   getStock tid lid
+-- | syncInventory :: ThingId -> SubjectId -> Channel -> InventoryIntent Unit SyncResult
+-- | syncInventory tid sid ch =
+-- |   getStock tid sid
 -- |   >>> arrIntent _.quantity
 -- |   >>> (\qty -> syncToChannel ch tid qty)  -- 注: これは関数適用、分岐ではない
 -- | ```
@@ -244,9 +206,9 @@ syncFromChannel ch tid = liftEffect (SyncFromChannel ch tid identity)
 -- | 上記は実際には以下のように書く必要がある（カリー化の制約）:
 -- |
 -- | ```purescript
--- | syncInventoryFixed :: ThingId -> LocationId -> Channel -> InventoryIntent Unit StockInfo
--- | syncInventoryFixed tid lid ch =
--- |   getStock tid lid
+-- | syncInventoryFixed :: ThingId -> SubjectId -> Channel -> InventoryIntent Unit StockInfo
+-- | syncInventoryFixed tid sid ch =
+-- |   getStock tid sid
 -- |   -- syncToChannel は Quantity を入力として期待するが、
 -- |   -- getStock は StockInfo を返す。
 -- |   -- これは Intent の合成で解決。
@@ -259,14 +221,14 @@ syncFromChannel ch tid = liftEffect (SyncFromChannel ch tid identity)
 -- | 以下のコードは型エラーになる（ArrowChoice がないため）
 -- |
 -- | ```purescript
--- | illegalBranching :: ThingId -> LocationId -> InventoryIntent Unit Unit
--- | illegalBranching tid lid =
--- |   getStock tid lid
--- |   >>> arrIntent (\info -> 
--- |         if info.available > Quantity 0 
--- |         then Left () 
+-- | illegalBranching :: ThingId -> SubjectId -> InventoryIntent Unit Unit
+-- | illegalBranching tid sid =
+-- |   getStock tid sid
+-- |   >>> arrIntent (\info ->
+-- |         if info.available > Quantity 0
+-- |         then Left ()
 -- |         else Right ())
--- |   >>> left (adjustStock tid lid (QuantityDelta (-1)))  -- 型エラー!
+-- |   >>> left (adjustStock tid sid (QuantityDelta (-1)))  -- 型エラー!
 -- | ```
 -- |
 -- | 分岐が必要な場合は Handler（Cognition）層で処理する。

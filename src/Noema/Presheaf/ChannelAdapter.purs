@@ -32,12 +32,9 @@ import Data.Maybe (Maybe)
 import Effect.Aff (Aff, delay)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Data.Time.Duration (Milliseconds(..))
-import Noema.Vorzeichnung.Vocabulary.Base (ThingId, Timestamp)
-import Noema.Vorzeichnung.Vocabulary.InventoryF
-  ( Channel
-  , Quantity
-  , SyncResult(..)
-  )
+import Noema.Core.Locus (ThingId, Quantity, Timestamp)
+import Noema.Presheaf.Channel (Channel)
+import Noema.Vorzeichnung.Vocabulary.InventoryF (SyncResult(..))
 
 -- | 在庫イベント型
 -- |

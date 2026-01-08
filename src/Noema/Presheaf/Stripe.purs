@@ -25,11 +25,9 @@ import Data.Maybe (Maybe(..))
 import Data.String (split, Pattern(..), indexOf)
 import Data.Array (filter)
 import Effect.Aff (Aff)
-import Noema.Vorzeichnung.Vocabulary.Base (ThingId(..), mkTimestamp)
-import Noema.Vorzeichnung.Vocabulary.InventoryF
-  ( Channel(..)
-  , SyncResult(..)
-  )
+import Noema.Core.Locus (ThingId(..), mkTimestamp)
+import Noema.Presheaf.Channel (Channel(..))
+import Noema.Vorzeichnung.Vocabulary.InventoryF (SyncResult(..))
 import Noema.Presheaf.ChannelAdapter
   ( class ChannelAdapter
   , AdapterError(..)

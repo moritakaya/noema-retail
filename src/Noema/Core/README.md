@@ -33,6 +33,7 @@ DO が眠って起きた時:
 newtype LocusId = LocusId String
 
 -- Subject: 意志を持つ主体（DO として実装）
+-- 注: 旧設計の LocationId は SubjectId に統合された
 newtype SubjectId = SubjectId LocusId
 
 -- Thing: 意志を持たない物（DO ではない、Guardian に包摂）
@@ -46,7 +47,33 @@ newtype RelationId = RelationId String
 
 -- Sediment: 状態変更の記録（Lamport Clock）
 newtype SedimentId = SedimentId Int
+
+-- Quantity: 数量（非負整数）
+newtype Quantity = Quantity Int
+
+-- QuantityDelta: 数量変化（正負あり）
+newtype QuantityDelta = QuantityDelta Int
 ```
+
+## 設計変更: LocationId → SubjectId
+
+旧設計では `LocationId`（倉庫、店舗）が在庫の位置を表していた。
+新設計では `SubjectId`（Guardian）が Thing を包摂し、
+その Subject の位置が Thing の位置を決定する。
+
+これにより：
+- 型の重複が解消された
+- AVDC 構造との整合性が向上した
+- Thing は常に Guardian Subject に包摂されるという設計が明確になった
+
+### 変更一覧
+
+| 項目 | 旧 | 新 |
+|------|-----|-----|
+| 型名 | `LocationId` | `SubjectId` |
+| フィールド | `locationId` | `subjectId` |
+| DB カラム | `location_id` | `subject_id` |
+| JSON キー | `locationId` | `subjectId` |
 
 ## 存在論的三層構造
 

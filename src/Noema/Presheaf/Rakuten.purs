@@ -20,12 +20,9 @@ import Data.Nullable (toNullable)
 import Data.String (split, Pattern(..))
 import Data.Tuple.Nested ((/\))
 import Foreign.Object as Object
-import Noema.Vorzeichnung.Vocabulary.Base (ThingId(..), mkTimestamp)
-import Noema.Vorzeichnung.Vocabulary.InventoryF
-  ( Channel(..)
-  , Quantity(..)
-  , SyncResult(..)
-  )
+import Noema.Core.Locus (ThingId(..), Quantity(..), mkTimestamp)
+import Noema.Presheaf.Channel (Channel(..))
+import Noema.Vorzeichnung.Vocabulary.InventoryF (SyncResult(..))
 import Noema.Presheaf.ChannelAdapter
   ( class ChannelAdapter
   , getStock

@@ -34,7 +34,7 @@ NoemaF = SubjectF + ThingF + RelationF + ContractF
 | `ContractF.purs` | 契約 | ProposeContract, AcceptContract, FulfillObligation |
 | `NoemaF.purs` | 統合語彙 | 全 Vocabulary の余積 |
 | `Constructors.purs` | スマートコンストラクタ | Intent への持ち上げ |
-| `InventoryF.purs` | 在庫操作（レガシー） | GetStock, SetStock, Reserve |
+| `InventoryF.purs` | 在庫操作 | GetStock, SetStock, Reserve（SubjectId を使用） |
 | `HttpF.purs` | HTTP 操作 | Fetch, Request, Response |
 | `StorageF.purs` | Storage 操作 | Get, Put, Delete |
 | `RetailF.purs` | 統合語彙（レガシー） | InventoryF + HttpF + StorageF |
@@ -91,6 +91,33 @@ establishOwnership = addRelation
 -- 契約を提案
 proposeNewContract :: NoemaIntent ContractProposal ContractId
 proposeNewContract = proposeContract
+```
+
+## 型定義の正規化
+
+基本型は `Noema.Core.Locus` に集約されている：
+
+| 型 | 説明 |
+|---|---|
+| `ThingId` | 物の識別子 |
+| `SubjectId` | 意志を持つ主体の識別子（旧 LocationId を統合） |
+| `Quantity` | 数量（非負整数） |
+| `QuantityDelta` | 数量変化（正負あり） |
+
+`Channel` 型は `Noema.Presheaf.Channel` に定義されている。
+
+### 設計変更: LocationId → SubjectId
+
+旧設計では `LocationId`（倉庫、店舗）が在庫の位置を表していた。
+新設計では `SubjectId`（Guardian）が Thing を包摂し、
+その Subject の位置が Thing の位置を決定する。
+
+```purescript
+-- 旧設計
+getStock :: ThingId -> LocationId -> InventoryIntent Unit StockInfo
+
+-- 新設計
+getStock :: ThingId -> SubjectId -> InventoryIntent Unit StockInfo
 ```
 
 ## 実装規則

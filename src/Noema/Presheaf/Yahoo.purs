@@ -26,10 +26,7 @@ import Effect.Ref (Ref)
 import Effect.Ref as Ref
 import Effect.Class (liftEffect)
 import Foreign.Object as Object
-import Noema.Vorzeichnung.Vocabulary.Base (ThingId(..))
-import Noema.Vorzeichnung.Vocabulary.InventoryF
-  ( Quantity(..)
-  )
+import Noema.Core.Locus (ThingId(..), Quantity(..))
 import Noema.Presheaf.ChannelAdapter
   ( AdapterError(..)
   , StockInfo

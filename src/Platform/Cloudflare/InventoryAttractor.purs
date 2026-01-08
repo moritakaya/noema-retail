@@ -23,12 +23,17 @@ import Prelude
 import Data.Newtype (unwrap)
 import Effect (Effect)
 import Foreign (Foreign, unsafeToForeign)
-import Noema.Vorzeichnung.Vocabulary.InventoryF
-  ( StockInfo
+import Noema.Core.Locus
+  ( ThingId(..)
+  , SubjectId(..)
   , Quantity(..)
   , QuantityDelta(..)
-  , ThingId(..)
-  , LocationId(..)
+  , mkSubjectId
+  , unwrapSubjectId
+  , unwrapThingId
+  )
+import Noema.Vorzeichnung.Vocabulary.InventoryF
+  ( StockInfo
   , getStock
   , setStock
   , adjustStock
@@ -86,9 +91,11 @@ handleFetch state' req = do
 
   -- ルーティング
   case { method: reqMethod, path } of
-    -- GET /inventory/:productId/:locationId
-    { method: "GET", path: ["inventory", productId, locationId] } ->
-      handleGetInventory state (ThingId productId) (LocationId locationId)
+    -- GET /inventory/:productId/:subjectId
+    -- 注: URL パスは locationId のまま（後方互換性）、
+    -- 内部では SubjectId として扱う
+    { method: "GET", path: ["inventory", productId, subjectIdStr] } ->
+      handleGetInventory state (ThingId productId) (mkSubjectId subjectIdStr)
 
     -- GET /inventory/:productId
     { method: "GET", path: ["inventory", productId] } ->
@@ -138,16 +145,16 @@ handleAlarm state = do
 -- ルートハンドラー
 --------------------------------------------------------------------------------
 
-handleGetInventory :: InventoryAttractorState -> ThingId -> LocationId -> Effect Response
-handleGetInventory state productId locationId = do
-  let intent = getStock productId locationId
+handleGetInventory :: InventoryAttractorState -> ThingId -> SubjectId -> Effect Response
+handleGetInventory state productId subjectId = do
+  let intent = getStock productId subjectId
   result <- runInventoryIntent state.env intent unit
   jsonResponse $ stockInfoToJson result
 
 handleGetInventoryByProduct :: InventoryAttractorState -> ThingId -> Effect Response
 handleGetInventoryByProduct state productId = do
-  -- 新しい API では location が必須のため、デフォルト location を使用
-  let intent = getStock productId (LocationId "default")
+  -- 新しい API では subject が必須のため、デフォルト subject を使用
+  let intent = getStock productId (mkSubjectId "default")
   result <- runInventoryIntent state.env intent unit
   jsonResponse [ stockInfoToJson result ]
 
@@ -155,12 +162,12 @@ handleCreateInventory :: InventoryAttractorState -> Request -> Effect Response
 handleCreateInventory state _req = do
   -- TODO: JSON パース
   let productId = ThingId "default"
-      locationId = LocationId "default"
+      subjectId = mkSubjectId "default"
       quantity = Quantity 0
-  let intent = setStock productId locationId quantity
+  let intent = setStock productId subjectId quantity
   _ <- runInventoryIntent state.env intent unit
   -- setStock は Unit を返すため、作成後に取得
-  let getIntent = getStock productId locationId
+  let getIntent = getStock productId subjectId
   result <- runInventoryIntent state.env getIntent unit
   jsonResponse $ stockInfoToJson result
 
@@ -168,12 +175,12 @@ handleAdjustStock :: InventoryAttractorState -> Request -> Effect Response
 handleAdjustStock state _req = do
   -- TODO: JSON パース
   let productId = ThingId "default"
-      locationId = LocationId "default"
+      subjectId = mkSubjectId "default"
       delta = QuantityDelta 0
-  let intent = adjustStock productId locationId delta
+  let intent = adjustStock productId subjectId delta
   _newQty <- runInventoryIntent state.env intent unit
   -- adjustStock は新しい Quantity を返す。StockInfo として取得して返す
-  let getIntent = getStock productId locationId
+  let getIntent = getStock productId subjectId
   stockInfo <- runInventoryIntent state.env getIntent unit
   jsonResponse $ stockInfoToJson stockInfo
 
@@ -181,9 +188,9 @@ handleReserveStock :: InventoryAttractorState -> Request -> Effect Response
 handleReserveStock state _req = do
   -- TODO: JSON パース
   let productId = ThingId "default"
-      locationId = LocationId "default"
+      subjectId = mkSubjectId "default"
       quantity = Quantity 1
-  let intent = reserveStock productId locationId quantity
+  let intent = reserveStock productId subjectId quantity
   result <- runInventoryIntent state.env intent unit
   if result
     then jsonResponse { success: true, message: "Reserved successfully" }
@@ -191,10 +198,10 @@ handleReserveStock state _req = do
 
 handleReleaseReservation :: InventoryAttractorState -> String -> Effect Response
 handleReleaseReservation state reservationId = do
-  -- TODO: reservationId から productId/locationId を取得するロジックが必要
+  -- TODO: reservationId から productId/subjectId を取得するロジックが必要
   let productId = ThingId "default"
-      locationId = LocationId "default"
-  let intent = releaseReservation productId locationId reservationId
+      subjectId = mkSubjectId "default"
+  let intent = releaseReservation productId subjectId reservationId
   _ <- runInventoryIntent state.env intent unit
   jsonResponse { success: true }
 
@@ -219,11 +226,8 @@ foreign import parseUrlPath :: String -> Array String
 stockInfoToJson :: StockInfo -> Foreign
 stockInfoToJson info = unsafeToForeign
   { thingId: unwrapThingId info.thingId
-  , locationId: unwrapLocationId info.locationId
+  , subjectId: unwrapSubjectId info.subjectId
   , quantity: unwrap info.quantity
   , reserved: unwrap info.reserved
   , available: unwrap info.available
   }
-  where
-    unwrapThingId (ThingId s) = s
-    unwrapLocationId (LocationId s) = s
