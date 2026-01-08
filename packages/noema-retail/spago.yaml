@@ -1,0 +1,43 @@
+package:
+  name: noema-retail
+  dependencies:
+    - noema-core
+    - prelude
+    - effect
+    - aff
+    - aff-promise
+    - free
+    - either
+    - maybe
+    - arrays
+    - foreign-object
+    - transformers
+    - newtype
+    - strings
+    - integers
+    - numbers
+    - refs
+    - foreign
+    - tuples
+    - foldable-traversable
+    - ordered-collections
+    - console
+    - exceptions
+    - datetime
+    - now
+    - argonaut-core
+    - argonaut-codecs
+    - argonaut-generic
+    - nullable
+    - arraybuffer-types
+    - assert
+    - control
+    - exists
+    - profunctor
+    - tailrec
+
+  test:
+    main: Test.Main
+    dependencies:
+      - spec
+      - spec-discovery

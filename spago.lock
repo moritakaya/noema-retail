@@ -1,8 +1,91 @@
 {
   "workspace": {
     "packages": {
+      "noema-core": {
+        "path": "packages/noema-core",
+        "core": {
+          "dependencies": [
+            "aff",
+            "argonaut-core",
+            "arrays",
+            "assert",
+            "console",
+            "control",
+            "datetime",
+            "effect",
+            "either",
+            "exists",
+            "foldable-traversable",
+            "foreign",
+            "integers",
+            "maybe",
+            "newtype",
+            "numbers",
+            "ordered-collections",
+            "prelude",
+            "profunctor",
+            "strings",
+            "tailrec",
+            "tuples"
+          ],
+          "build_plan": [
+            "aff",
+            "argonaut-core",
+            "arrays",
+            "assert",
+            "bifunctors",
+            "console",
+            "const",
+            "contravariant",
+            "control",
+            "datetime",
+            "distributive",
+            "effect",
+            "either",
+            "enums",
+            "exceptions",
+            "exists",
+            "foldable-traversable",
+            "foreign",
+            "foreign-object",
+            "functions",
+            "functors",
+            "gen",
+            "identity",
+            "integers",
+            "invariant",
+            "lazy",
+            "lists",
+            "maybe",
+            "newtype",
+            "nonempty",
+            "numbers",
+            "ordered-collections",
+            "orders",
+            "parallel",
+            "partial",
+            "prelude",
+            "profunctor",
+            "refs",
+            "safe-coerce",
+            "st",
+            "strings",
+            "tailrec",
+            "transformers",
+            "tuples",
+            "type-equality",
+            "typelevel-prelude",
+            "unfoldable",
+            "unsafe-coerce"
+          ]
+        },
+        "test": {
+          "dependencies": [],
+          "build_plan": []
+        }
+      },
       "noema-retail": {
-        "path": "./",
+        "path": "packages/noema-retail",
         "core": {
           "dependencies": [
             "aff",
@@ -27,6 +110,7 @@
             "integers",
             "maybe",
             "newtype",
+            "noema-core",
             "now",
             "nullable",
             "numbers",
@@ -75,6 +159,7 @@
             "lists",
             "maybe",
             "newtype",
+            "noema-core",
             "nonempty",
             "now",
             "nullable",
@@ -100,8 +185,74 @@
           ]
         },
         "test": {
-          "dependencies": [],
-          "build_plan": []
+          "dependencies": [
+            "spec",
+            "spec-discovery"
+          ],
+          "build_plan": [
+            "aff",
+            "aff-promise",
+            "ansi",
+            "arraybuffer-types",
+            "arrays",
+            "avar",
+            "bifunctors",
+            "catenable-lists",
+            "console",
+            "const",
+            "contravariant",
+            "control",
+            "datetime",
+            "distributive",
+            "effect",
+            "either",
+            "enums",
+            "exceptions",
+            "exists",
+            "foldable-traversable",
+            "foreign",
+            "fork",
+            "free",
+            "functions",
+            "functors",
+            "gen",
+            "identity",
+            "integers",
+            "invariant",
+            "js-date",
+            "lazy",
+            "lists",
+            "maybe",
+            "mmorph",
+            "newtype",
+            "node-buffer",
+            "node-fs",
+            "node-path",
+            "node-streams",
+            "nonempty",
+            "now",
+            "nullable",
+            "numbers",
+            "ordered-collections",
+            "orders",
+            "parallel",
+            "partial",
+            "pipes",
+            "prelude",
+            "profunctor",
+            "refs",
+            "safe-coerce",
+            "spec",
+            "spec-discovery",
+            "st",
+            "strings",
+            "tailrec",
+            "transformers",
+            "tuples",
+            "type-equality",
+            "unfoldable",
+            "unsafe-coerce"
+          ]
         }
       }
     },
@@ -572,6 +723,16 @@
         "foreign"
       ]
     },
+    "ansi": {
+      "type": "registry",
+      "version": "7.0.0",
+      "integrity": "sha256-ZMB6HD+q9CXvn9fRCmJ8dvuDrOVHcjombL3oNOerVnE=",
+      "dependencies": [
+        "foldable-traversable",
+        "lists",
+        "strings"
+      ]
+    },
     "argonaut-codecs": {
       "type": "registry",
       "version": "9.1.0",
@@ -653,6 +814,19 @@
         "console",
         "effect",
         "prelude"
+      ]
+    },
+    "avar": {
+      "type": "registry",
+      "version": "5.0.0",
+      "integrity": "sha256-e7hf0x4hEpcygXP0LtvfvAQ49Bbj2aWtZT3gqM///0A=",
+      "dependencies": [
+        "aff",
+        "effect",
+        "either",
+        "exceptions",
+        "functions",
+        "maybe"
       ]
     },
     "bifunctors": {
@@ -864,6 +1038,14 @@
         "unfoldable"
       ]
     },
+    "fork": {
+      "type": "registry",
+      "version": "6.0.0",
+      "integrity": "sha256-X7u0SuCvFbLbzuNEKLBNuWjmcroqMqit4xEzpQwAP7E=",
+      "dependencies": [
+        "aff"
+      ]
+    },
     "free": {
       "type": "registry",
       "version": "7.0.0",
@@ -960,6 +1142,19 @@
         "prelude"
       ]
     },
+    "js-date": {
+      "type": "registry",
+      "version": "8.0.0",
+      "integrity": "sha256-6TVF4DWg5JL+jRAsoMssYw8rgOVALMUHT1CuNZt8NRo=",
+      "dependencies": [
+        "datetime",
+        "effect",
+        "exceptions",
+        "foreign",
+        "integers",
+        "now"
+      ]
+    },
     "lazy": {
       "type": "registry",
       "version": "6.0.0",
@@ -1001,6 +1196,16 @@
         "prelude"
       ]
     },
+    "mmorph": {
+      "type": "registry",
+      "version": "7.0.0",
+      "integrity": "sha256-urZlZNNqGeQFe5D/ClHlR8QgGBNHTMFPtJ5S5IpflTQ=",
+      "dependencies": [
+        "free",
+        "functors",
+        "transformers"
+      ]
+    },
     "newtype": {
       "type": "registry",
       "version": "5.0.0",
@@ -1008,6 +1213,63 @@
       "dependencies": [
         "prelude",
         "safe-coerce"
+      ]
+    },
+    "node-buffer": {
+      "type": "registry",
+      "version": "8.0.0",
+      "integrity": "sha256-RwOTB8yTS4Jjqc55JqxRcVaMXP+cYJ5aww0XH1Z/I8A=",
+      "dependencies": [
+        "arraybuffer-types",
+        "effect",
+        "maybe",
+        "st",
+        "unsafe-coerce"
+      ]
+    },
+    "node-fs": {
+      "type": "registry",
+      "version": "8.1.1",
+      "integrity": "sha256-mXPDpXgWviWhkrYSQx2ERu4R8Z0CLIEikQDLzGZ7iuY=",
+      "dependencies": [
+        "datetime",
+        "effect",
+        "either",
+        "enums",
+        "exceptions",
+        "functions",
+        "integers",
+        "js-date",
+        "maybe",
+        "node-buffer",
+        "node-path",
+        "node-streams",
+        "nullable",
+        "partial",
+        "prelude",
+        "strings",
+        "unsafe-coerce"
+      ]
+    },
+    "node-path": {
+      "type": "registry",
+      "version": "5.0.0",
+      "integrity": "sha256-pd82nQ+2l5UThzaxPdKttgDt7xlsgIDLpPG0yxDEdyE=",
+      "dependencies": [
+        "effect"
+      ]
+    },
+    "node-streams": {
+      "type": "registry",
+      "version": "7.0.0",
+      "integrity": "sha256-EGCA+hp6chlxDlQ8UG3RIaIIL1R0OckKnqP+KPAX1y4=",
+      "dependencies": [
+        "effect",
+        "either",
+        "exceptions",
+        "node-buffer",
+        "nullable",
+        "prelude"
       ]
     },
     "nonempty": {
@@ -1102,6 +1364,20 @@
       "integrity": "sha256-fwXerld6Xw1VkReh8yeQsdtLVrjfGiVuC5bA1Wyo/J4=",
       "dependencies": []
     },
+    "pipes": {
+      "type": "registry",
+      "version": "8.0.0",
+      "integrity": "sha256-kvfqGM4cPA/wCcBHbp5psouFw5dZGvku2462x7ZBwSY=",
+      "dependencies": [
+        "aff",
+        "lists",
+        "mmorph",
+        "prelude",
+        "tailrec",
+        "transformers",
+        "tuples"
+      ]
+    },
     "prelude": {
       "type": "registry",
       "version": "6.0.1",
@@ -1148,6 +1424,55 @@
       "integrity": "sha256-a1ibQkiUcbODbLE/WAq7Ttbbh9ex+x33VCQ7GngKudU=",
       "dependencies": [
         "unsafe-coerce"
+      ]
+    },
+    "spec": {
+      "type": "registry",
+      "version": "7.2.0",
+      "integrity": "sha256-dVoyiBGduIVpeuudDyFkvOq4jwZuCZNMqWE7GfULfps=",
+      "dependencies": [
+        "aff",
+        "ansi",
+        "arrays",
+        "avar",
+        "bifunctors",
+        "control",
+        "datetime",
+        "effect",
+        "either",
+        "exceptions",
+        "foldable-traversable",
+        "fork",
+        "identity",
+        "integers",
+        "lists",
+        "maybe",
+        "newtype",
+        "now",
+        "ordered-collections",
+        "parallel",
+        "pipes",
+        "prelude",
+        "strings",
+        "tailrec",
+        "transformers",
+        "tuples"
+      ]
+    },
+    "spec-discovery": {
+      "type": "registry",
+      "version": "8.0.1",
+      "integrity": "sha256-Fr/b+oAsEvuAvvBqf7G5JCkhesuFnLIJa6PjlWqfp2g=",
+      "dependencies": [
+        "aff",
+        "aff-promise",
+        "arrays",
+        "console",
+        "effect",
+        "foldable-traversable",
+        "node-fs",
+        "prelude",
+        "spec"
       ]
     },
     "st": {

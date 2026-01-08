@@ -1,0 +1,28 @@
+package:
+  name: noema-core
+  dependencies:
+    - prelude
+    - effect
+    - aff
+    - either
+    - maybe
+    - tuples
+    - newtype
+    - profunctor
+    - tailrec
+    - exists
+    - control
+    - argonaut-core
+    - ordered-collections
+    - datetime
+    - arrays
+    - foldable-traversable
+    - foreign
+    - strings
+    - integers
+    - numbers
+    - console
+    - assert
+  test:
+    main: Test.Core.Main
+    dependencies: []

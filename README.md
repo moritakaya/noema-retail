@@ -41,72 +41,56 @@
 - 分岐は Cognition（Handler）の責務
 - TLA+ でのモデル検証が容易
 
+## モノレポ構成
+
+このリポジトリは spago workspace を使用したモノレポ構成です。
+
+| パッケージ | 説明 |
+|------------|------|
+| `noema-core` | DSL コア（Intent, Arrow, AVDC 語彙） |
+| `noema-retail` | 小売業実装（在庫、チャネルアダプター、Platform） |
+
 ## ディレクトリ構造
 
 ```
-src/
-├── Main.purs                       # Worker エントリーポイント
+packages/
+├── noema-core/                    # DSL コア
+│   ├── src/
+│   │   ├── Control/Arrow.purs     # Arrow 型クラス
+│   │   └── Noema/
+│   │       ├── Core/              # 基本型（Locus, World）
+│   │       ├── Vorzeichnung/      # 予描図式（Intent, Combinators）
+│   │       │   └── Vocabulary/    # AVDC 語彙
+│   │       │       ├── SubjectF.purs
+│   │       │       ├── ThingF.purs
+│   │       │       ├── RelationF.purs
+│   │       │       ├── ContractF.purs
+│   │       │       └── NoemaF.purs
+│   │       ├── Cognition/Handler.purs
+│   │       ├── Sedimentation/     # Attractor, Seal
+│   │       └── Presheaf/          # Channel, ChannelAdapter
+│   └── spago.yaml
 │
-├── Noema/                          # Noema DSL 本体
-│   ├── Core/                       # 基本型と座標系
-│   │   ├── Locus.purs              # 空間座標（SubjectId, ThingId 等）
-│   │   └── World.purs              # 法座標（Nomos, Context）
-│   │
-│   ├── Vorzeichnung/               # 意図の構造（左随伴）
-│   │   ├── Intent.purs             # Arrow-based Intent
-│   │   ├── FreerArrow.purs         # Arrow 実装
-│   │   ├── Combinators.purs        # Arrow コンビネータ
-│   │   └── Vocabulary/             # ドメイン語彙
-│   │       ├── SubjectF.purs       # 意志主体操作
-│   │       ├── ThingF.purs         # もの・こと操作
-│   │       ├── RelationF.purs      # 関係操作
-│   │       ├── ContractF.purs      # 契約操作
-│   │       ├── NoemaF.purs         # 統合語彙（余積）
-│   │       ├── Constructors.purs   # スマートコンストラクタ
-│   │       ├── InventoryF.purs     # 在庫操作
-│   │       ├── HttpF.purs          # HTTP 操作
-│   │       └── StorageF.purs       # Storage 操作
-│   │
-│   ├── Cognition/                  # 認知・実行（右随伴）
-│   │   ├── Handler.purs            # Handler 基底型
-│   │   ├── InventoryHandler.purs   # 在庫 Handler
-│   │   └── StorageHandler.purs     # Storage Handler
-│   │
-│   ├── Sedimentation/              # 沈殿（状態の定着）
-│   │   ├── Attractor.purs          # 抽象 Attractor
-│   │   └── Seal.purs               # 封印（トランザクション結果）
-│   │
-│   └── Presheaf/                   # 表現（Channel^op → Set）
-│       ├── Channel.purs            # Channel 圏の対象
-│       ├── ChannelAdapter.purs     # 基底型クラス
-│       ├── Smaregi.purs            # スマレジ連携
-│       ├── Rakuten.purs            # 楽天市場連携
-│       ├── Yahoo.purs              # Yahoo!ショッピング連携
-│       └── Stripe.purs             # Stripe 連携
-│
-├── Control/                        # Arrow 制御構造
-│   └── Arrow.purs                  # Arrow 型クラス実装
-│
-├── TlaPlus/                        # TLA+ 連携
-│   ├── Extract.purs                # Intent → TLA+ 抽出
-│   └── Feedback.purs               # TLA+ 検証結果フィードバック
-│
-└── Platform/                       # プラットフォーム実装
-    └── Cloudflare/
-        ├── InventoryAttractor.purs # Attractor の DO 実装
-        ├── Router.purs             # Hono ルーター
-        └── FFI/                    # Workers 固有 API
-            ├── DurableObject.purs  # DO 基本操作
-            ├── SqlStorage.purs     # SQLite Storage
-            ├── Request.purs        # Request 操作
-            ├── Response.purs       # Response 操作
-            ├── Fetch.purs          # Fetch API
-            └── Crypto.purs         # 暗号操作
+└── noema-retail/                  # 小売実装
+    ├── src/
+    │   ├── Main.purs              # Worker エントリーポイント
+    │   ├── Noema/
+    │   │   ├── Vorzeichnung/Vocabulary/
+    │   │   │   ├── InventoryF.purs
+    │   │   │   ├── HttpF.purs
+    │   │   │   └── StorageF.purs
+    │   │   ├── Cognition/
+    │   │   │   ├── InventoryHandler.purs
+    │   │   │   └── StorageHandler.purs
+    │   │   └── Presheaf/          # Rakuten, Smaregi, Yahoo, Stripe
+    │   ├── TlaPlus/               # TLA+ 連携
+    │   └── Platform/Cloudflare/   # DO 実装、Router、FFI
+    └── spago.yaml
 
 tlaplus/
 └── specs/                          # TLA+ 形式検証
-    ├── InventorySimple.tla         # 在庫操作仕様
-    └── InventorySimple.cfg         # TLC 設定
+    ├── InventorySimple.tla
+    └── InventorySimple.cfg
 ```
 
 ## 圏論的対応
@@ -122,18 +106,22 @@ tlaplus/
 
 ```bash
 # ビルド
-spago build
+spago build                     # 全パッケージビルド
+spago build -p noema-core       # DSL コアのみ
+spago build -p noema-retail     # 小売実装のみ
 
 # テスト
-spago test
+spago test                      # 全パッケージテスト
+spago test -p noema-core        # Arrow 法則テスト
+spago test -p noema-retail      # 小売実装テスト
 
 # TLA+ 検証
 cd tlaplus/specs
 java -jar ~/tla2tools.jar -config InventorySimple.cfg InventorySimple.tla
 
 # 開発
-npm run build      # ESBuild バンドル
-wrangler dev       # ローカル起動
+npm run build                   # ESBuild バンドル
+wrangler dev                    # ローカル起動
 
 # デプロイ
 wrangler deploy                    # 開発環境

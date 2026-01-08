@@ -35,56 +35,89 @@
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+## モノレポ構成
+
+このリポジトリは spago workspace を使用したモノレポ構成です。
+
+| パッケージ | 説明 | 依存 |
+|------------|------|------|
+| `noema-core` | DSL コア（Intent, Arrow, AVDC 語彙） | - |
+| `noema-retail` | 小売業実装（在庫、チャネルアダプター、Platform） | `noema-core` |
+
+### パッケージ分離の原則
+
+```
+noema-core (DSL)              noema-retail (実装)
+├── Arrow 型クラス            ├── InventoryF（ドメイン語彙）
+├── Intent / Handler          ├── HttpF / StorageF（インフラ）
+├── AVDC 語彙                 ├── Handlers（具体実装）
+│   ├── SubjectF              ├── Channel Adapters
+│   ├── ThingF                ├── Platform/Cloudflare
+│   ├── RelationF             └── TlaPlus/
+│   ├── ContractF
+│   └── NoemaF
+├── Core/Locus, World
+├── Sedimentation/Attractor, Seal
+└── Presheaf/Channel, ChannelAdapter
+```
+
+**依存方向**: `noema-retail` → `noema-core`（逆方向は禁止）
+
 ## ディレクトリ構造
 
 ```
-src/
-├── Main.purs                       # Worker エントリーポイント
+packages/
+├── noema-core/                    # DSL コア
+│   ├── src/
+│   │   ├── Control/Arrow.purs     # Arrow 型クラス
+│   │   └── Noema/
+│   │       ├── Core/              # 基本型
+│   │       │   ├── Locus.purs     # 空間座標
+│   │       │   └── World.purs     # 法座標
+│   │       ├── Vorzeichnung/      # 予描図式（左随伴）
+│   │       │   ├── Intent.purs    # Arrow-based Intent
+│   │       │   ├── FreerArrow.purs
+│   │       │   ├── Combinators.purs
+│   │       │   └── Vocabulary/    # AVDC 語彙
+│   │       │       ├── SubjectF.purs
+│   │       │       ├── ThingF.purs
+│   │       │       ├── RelationF.purs
+│   │       │       ├── ContractF.purs
+│   │       │       └── NoemaF.purs
+│   │       ├── Cognition/
+│   │       │   └── Handler.purs   # Handler 基底型
+│   │       ├── Sedimentation/
+│   │       │   ├── Attractor.purs
+│   │       │   └── Seal.purs
+│   │       └── Presheaf/
+│   │           ├── Channel.purs
+│   │           └── ChannelAdapter.purs
+│   └── spago.yaml
 │
-├── Noema/                          # Noema DSL 本体
-│   │
-│   ├── Vorzeichnung/               # 予描図式 = Arrow Effects（左随伴）
-│   │   ├── Intent.purs             # Arrow-based Intent
-│   │   ├── FreerArrow.purs         # Freer Arrow 実装
-│   │   ├── Combinators.purs        # Arrow コンビネータ
-│   │   └── Vocabulary/             # 語彙 = Functor F
-│   │       ├── Base.purs           # 基本型・識別子
-│   │       ├── InventoryF.purs     # 在庫操作
-│   │       ├── HttpF.purs          # HTTP 操作
-│   │       ├── StorageF.purs       # Storage 操作
-│   │       └── RetailF.purs        # 余積 Σ Vocabulary
-│   │
-│   ├── Cognition/                  # 認知 = Forgetful U（右随伴）
-│   │   ├── Handler.purs            # Handler 基底型
-│   │   ├── InventoryHandler.purs   # 在庫 Handler
-│   │   └── StorageHandler.purs     # Storage Handler
-│   │
-│   ├── Sedimentation/              # 沈殿 = 状態の定着
-│   │   ├── Attractor.purs          # 抽象 Attractor
-│   │   ├── Seal.purs               # 封印（トランザクション結果）
-│   │   └── Cryostasis.purs         # 凍結（Alarm 待機）
-│   │
-│   └── Presheaf/                   # 表現 = Channel^op → Set
-│       ├── ChannelAdapter.purs     # 基底型クラス
-│       ├── Smaregi.purs            # スマレジ連携
-│       ├── Rakuten.purs            # 楽天市場連携
-│       └── Stripe.purs             # Stripe 連携
-│
-├── Control/                        # Arrow 制御構造
-│   └── Arrow.purs                  # Arrow 型クラス
-│
-├── TlaPlus/                        # TLA+ 連携
-│   ├── Extract.purs                # Intent → TLA+ 抽出
-│   └── Feedback.purs               # TLA+ 結果フィードバック
-│
-└── Platform/                       # プラットフォーム実装
-    └── Cloudflare/
-        ├── InventoryAttractor.purs # Attractor の DO 実装
-        ├── Router.purs             # Hono ルーター
-        └── FFI/                    # Workers 固有 API
-            ├── DurableObject.purs
-            ├── SqlStorage.purs
-            └── ...
+└── noema-retail/                  # 小売実装
+    ├── src/
+    │   ├── Main.purs              # Worker エントリーポイント
+    │   ├── Noema/
+    │   │   ├── Vorzeichnung/Vocabulary/
+    │   │   │   ├── InventoryF.purs
+    │   │   │   ├── HttpF.purs
+    │   │   │   └── StorageF.purs
+    │   │   ├── Cognition/
+    │   │   │   ├── InventoryHandler.purs
+    │   │   │   └── StorageHandler.purs
+    │   │   └── Presheaf/
+    │   │       ├── Rakuten.purs
+    │   │       ├── Smaregi.purs
+    │   │       ├── Yahoo.purs
+    │   │       └── Stripe.purs
+    │   ├── TlaPlus/
+    │   │   ├── Extract.purs
+    │   │   └── Feedback.purs
+    │   └── Platform/Cloudflare/
+    │       ├── InventoryAttractor.purs
+    │       ├── Router.purs
+    │       └── FFI/
+    └── spago.yaml
 ```
 
 ## 技術スタック
@@ -101,17 +134,23 @@ src/
 ## コマンド
 
 ```bash
+# ビルド
+spago build                     # 全パッケージビルド
+spago build -p noema-core       # DSL コアのみ
+spago build -p noema-retail     # 小売実装のみ
+
+# テスト
+spago test                      # 全パッケージテスト
+spago test -p noema-core        # Arrow 法則テスト
+spago test -p noema-retail      # 小売実装テスト
+
 # 開発
-spago build           # PureScript ビルド
-npm run build         # ESBuild バンドル
-wrangler dev          # ローカル起動
+npm run build                   # ESBuild バンドル
+wrangler dev                    # ローカル起動
 
 # デプロイ
 wrangler deploy                    # 開発環境
 wrangler deploy --env production   # 本番環境
-
-# テスト
-spago test            # Arrow 法則テスト
 
 # TLA+ 検証
 cd tlaplus/specs

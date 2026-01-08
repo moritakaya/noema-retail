@@ -20,6 +20,7 @@ module Noema.Presheaf.ChannelAdapter
   , InventoryEvent(..)
   , StockInfo
   , OrderInfo
+  , SyncResult(..)
   -- Utilities
   , handleAdapterError
   , retryWithBackoff
@@ -34,7 +35,16 @@ import Effect.Aff.Class (class MonadAff, liftAff)
 import Data.Time.Duration (Milliseconds(..))
 import Noema.Core.Locus (ThingId, Quantity, Timestamp)
 import Noema.Presheaf.Channel (Channel)
-import Noema.Vorzeichnung.Vocabulary.InventoryF (SyncResult(..))
+
+-- | 同期結果
+-- |
+-- | DSL コアの汎用型として定義。
+-- | InventoryF 等のドメイン語彙から使用される。
+data SyncResult
+  = SyncSuccess { channel :: Channel, quantity :: Quantity }
+  | SyncFailure { channel :: Channel, error :: String }
+
+derive instance eqSyncResult :: Eq SyncResult
 
 -- | 在庫イベント型
 -- |
@@ -139,9 +149,9 @@ retryWithBackoff maxRetries initialDelay action = go 0 initialDelay
             other -> pure other
 
     toNumber :: Int -> Number
-    toNumber = toNumber'
+    toNumber = intToNumber
 
-foreign import toNumber' :: Int -> Number
+foreign import intToNumber :: Int -> Number
 
 -- | レスポンスがリトライ可能か判定
 isRetryable :: AdapterError -> Boolean

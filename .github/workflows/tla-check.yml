@@ -1,0 +1,182 @@
+# TLA+ Model Checking Workflow
+#
+# This workflow verifies Noema's inventory model using TLC model checker.
+# It runs on:
+#   - Push to main branch (paths: tlaplus/**)
+#   - Pull requests (paths: tlaplus/**)
+#   - Manual trigger
+#
+# The verification ensures:
+#   - Safety: NonNegativeStock, ReservationBound, MaximumStock
+#   - Type correctness: TypeOK
+#
+# Correspondence:
+#   Intent (PureScript Arrow) ←→ TLA+ Action
+#   f >>> g                   ←→ F ∘ G
+#   f *** g                   ←→ F ∧ G
+
+name: TLA+ Verification
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tlaplus/**'
+      - 'src/Noema/Vorzeichnung/Vocabulary/InventoryF.purs'
+  pull_request:
+    paths:
+      - 'tlaplus/**'
+      - 'src/Noema/Vorzeichnung/Vocabulary/InventoryF.purs'
+  workflow_dispatch:
+    inputs:
+      spec:
+        description: 'TLA+ spec to check'
+        required: false
+        default: 'Inventory'
+
+env:
+  TLA_VERSION: '1.8.0'
+  JAVA_VERSION: '17'
+
+jobs:
+  model-check:
+    name: TLC Model Checking
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+      
+      - name: Cache TLA+ tools
+        id: cache-tla
+        uses: actions/cache@v4
+        with:
+          path: ~/tla2tools.jar
+          key: tla2tools-${{ env.TLA_VERSION }}
+      
+      - name: Download TLA+ tools
+        if: steps.cache-tla.outputs.cache-hit != 'true'
+        run: |
+          wget -q https://github.com/tlaplus/tlaplus/releases/download/v${{ env.TLA_VERSION }}/tla2tools.jar \
+            -O ~/tla2tools.jar
+      
+      - name: Verify TLA+ installation
+        run: |
+          java -jar ~/tla2tools.jar -h | head -5
+      
+      - name: Run TLC on Inventory
+        id: tlc-inventory
+        run: |
+          cd tlaplus/specs
+          
+          echo "::group::TLC Output"
+          java -XX:+UseParallelGC \
+               -Xmx4g \
+               -jar ~/tla2tools.jar \
+               -config Inventory.cfg \
+               -workers auto \
+               -deadlock \
+               -terse \
+               -cleanup \
+               Inventory.tla 2>&1 | tee tlc-output.txt
+          TLC_EXIT_CODE=${PIPESTATUS[0]}
+          echo "::endgroup::"
+          
+          # Check for errors
+          if [ $TLC_EXIT_CODE -ne 0 ]; then
+            echo "tlc_status=failed" >> $GITHUB_OUTPUT
+            echo "::error::TLC model checking failed"
+          else
+            echo "tlc_status=passed" >> $GITHUB_OUTPUT
+            echo "::notice::TLC model checking passed"
+          fi
+          
+          # Extract statistics
+          if grep -q "states generated" tlc-output.txt; then
+            STATES=$(grep "states generated" tlc-output.txt | tail -1)
+            echo "states=$STATES" >> $GITHUB_OUTPUT
+          fi
+          
+          exit $TLC_EXIT_CODE
+      
+      - name: Parse counterexample (if failed)
+        if: failure() && steps.tlc-inventory.outputs.tlc_status == 'failed'
+        run: |
+          cd tlaplus/specs
+          
+          echo "## TLA+ Verification Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Extract error type
+          if grep -q "Invariant.*violated" tlc-output.txt; then
+            INVARIANT=$(grep "Invariant.*violated" tlc-output.txt | head -1)
+            echo "**Invariant Violation:** $INVARIANT" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Extract counterexample trace
+          if grep -q "State 1:" tlc-output.txt; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Counterexample Trace" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            sed -n '/State 1:/,/^$/p' tlc-output.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Suggested Actions" >> $GITHUB_STEP_SUMMARY
+          echo "1. Review the counterexample trace above" >> $GITHUB_STEP_SUMMARY
+          echo "2. Check if the invariant is too strict" >> $GITHUB_STEP_SUMMARY
+          echo "3. Add guards in the Handler (Cognition) layer" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Generate success summary
+        if: success()
+        run: |
+          echo "## TLA+ Verification Passed ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Module:** Inventory" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Verified Properties" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ TypeOK" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ NonNegativeStock" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ ReservationBound" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ MaximumStock" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -n "${{ steps.tlc-inventory.outputs.states }}" ]; then
+            echo "### Statistics" >> $GITHUB_STEP_SUMMARY
+            echo "${{ steps.tlc-inventory.outputs.states }}" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Arrow ↔ TLA+ Correspondence" >> $GITHUB_STEP_SUMMARY
+          echo "| PureScript | TLA+ |" >> $GITHUB_STEP_SUMMARY
+          echo "|------------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| \`f >>> g\` | F ∘ G |" >> $GITHUB_STEP_SUMMARY
+          echo "| \`f *** g\` | F ∧ G |" >> $GITHUB_STEP_SUMMARY
+          echo "| \`arr f\` | vars' = f(vars) |" >> $GITHUB_STEP_SUMMARY
+          echo "| \`liftEffect\` | Action |" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Upload TLC output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tlc-output
+          path: tlaplus/specs/tlc-output.txt
+          retention-days: 7
+
+  # Optional: Run TLAPS proofs (if available)
+  # tlaps-check:
+  #   name: TLAPS Proof Checking
+  #   runs-on: ubuntu-latest
+  #   needs: model-check
+  #   if: false  # Disabled by default
+  #   steps:
+  #     - name: Run TLAPS
+  #       run: echo "TLAPS checking not implemented yet"

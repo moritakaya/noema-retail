@@ -38,8 +38,9 @@ module Noema.Vorzeichnung.Vocabulary.InventoryF
   , module Noema.Core.Locus
   -- Types (re-exported from Presheaf/Channel)
   , module Noema.Presheaf.Channel
+  -- Types (re-exported from Presheaf/ChannelAdapter)
+  , module Noema.Presheaf.ChannelAdapter
   -- Local types
-  , SyncResult(..)
   , StockInfo
   -- Smart constructors
   , getStock
@@ -56,6 +57,7 @@ import Prelude
 import Noema.Vorzeichnung.Intent (Intent, liftEffect)
 import Noema.Core.Locus (ThingId(..), SubjectId(..), Quantity(..), QuantityDelta(..), mkThingId, mkSubjectId, unwrapThingId, unwrapSubjectId, mkQuantity, unwrapQuantity, mkQuantityDelta, unwrapQuantityDelta)
 import Noema.Presheaf.Channel (Channel(..))
+import Noema.Presheaf.ChannelAdapter (SyncResult(..))
 
 -- ============================================================
 -- 在庫情報
@@ -72,13 +74,6 @@ type StockInfo =
   , reserved :: Quantity
   , available :: Quantity
   }
-
--- | 同期結果
-data SyncResult
-  = SyncSuccess { channel :: Channel, quantity :: Quantity }
-  | SyncFailure { channel :: Channel, error :: String }
-
-derive instance eqSyncResult :: Eq SyncResult
 
 -- ============================================================
 -- InventoryF: 単項関手としての在庫操作
