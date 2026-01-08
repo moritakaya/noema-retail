@@ -125,10 +125,9 @@ packages/
     │   │   └── Feedback.purs
     │   └── Platform/Cloudflare/
     │       └── InventoryAttractor.purs  # Retail 固有の DO
+    ├── ffi/
+    │   └── runtime.js             # Cloudflare Workers エントリーポイント
     └── spago.yaml
-
-ffi/
-└── runtime.js                     # Cloudflare Workers エントリーポイント
 ```
 
 ## 技術スタック

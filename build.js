@@ -16,7 +16,7 @@ if (!existsSync('./output/Main/index.js')) {
 
 // ESBuild でバンドル
 await esbuild.build({
-  entryPoints: ['./ffi/runtime.js'],
+  entryPoints: ['./packages/noema-retail/ffi/runtime.js'],
   bundle: true,
   outfile: './dist/worker.js',
   format: 'esm',

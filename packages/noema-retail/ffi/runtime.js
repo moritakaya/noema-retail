@@ -4,20 +4,20 @@
 // Durable Object クラスのエクスポートと、fetch/scheduled ハンドラーの登録を行う。
 
 import { DurableObject } from 'cloudflare:workers';
-import * as Main from '../output/Main/index.js';
-import * as InventoryAttractor from '../output/Workers.Attractor.InventoryAttractor/index.js';
+import * as Main from '../../../output/Main/index.js';
+import * as InventoryAttractorModule from '../../../output/Platform.Cloudflare.InventoryAttractor/index.js';
 
 // InventoryAttractor Durable Object
 export class InventoryAttractor extends DurableObject {
   constructor(ctx, env) {
     super(ctx, env);
-    this.state = InventoryAttractor.createAttractor(ctx)();
+    this.state = InventoryAttractorModule.createAttractor(ctx)();
     this.env = env;
   }
 
   async fetch(request) {
     try {
-      const response = InventoryAttractor.handleFetch(this.state)(request)();
+      const response = InventoryAttractorModule.handleFetch(this.state)(request)();
       return response;
     } catch (error) {
       console.error('InventoryAttractor fetch error:', error);
@@ -30,7 +30,7 @@ export class InventoryAttractor extends DurableObject {
 
   async alarm() {
     try {
-      InventoryAttractor.handleAlarm(this.state)();
+      InventoryAttractorModule.handleAlarm(this.state)();
     } catch (error) {
       console.error('InventoryAttractor alarm error:', error);
     }
