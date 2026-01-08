@@ -45,6 +45,8 @@
 
 ```
 src/
+├── Main.purs                       # Worker エントリーポイント
+│
 ├── Noema/                          # Noema DSL 本体
 │   ├── Core/                       # 基本型と座標系
 │   │   ├── Locus.purs              # 空間座標（SubjectId, ThingId 等）
@@ -55,10 +57,16 @@ src/
 │   │   ├── FreerArrow.purs         # Arrow 実装
 │   │   ├── Combinators.purs        # Arrow コンビネータ
 │   │   └── Vocabulary/             # ドメイン語彙
+│   │       ├── SubjectF.purs       # 意志主体操作
+│   │       ├── ThingF.purs         # もの・こと操作
+│   │       ├── RelationF.purs      # 関係操作
+│   │       ├── ContractF.purs      # 契約操作
+│   │       ├── NoemaF.purs         # 統合語彙（余積）
+│   │       ├── Constructors.purs   # スマートコンストラクタ
 │   │       ├── InventoryF.purs     # 在庫操作
 │   │       ├── HttpF.purs          # HTTP 操作
 │   │       ├── StorageF.purs       # Storage 操作
-│   │       └── RetailF.purs        # 余積 Σ Vocabulary
+│   │       └── RetailF.purs        # レガシー余積
 │   │
 │   ├── Cognition/                  # 認知・実行（右随伴）
 │   │   ├── Handler.purs            # Handler 基底型
@@ -67,14 +75,14 @@ src/
 │   │
 │   ├── Sedimentation/              # 沈殿（状態の定着）
 │   │   ├── Attractor.purs          # 抽象 Attractor
-│   │   ├── Seal.purs               # 封印（トランザクション結果）
-│   │   └── Cryostasis.purs         # 凍結（Alarm 待機）
+│   │   └── Seal.purs               # 封印（トランザクション結果）
 │   │
 │   └── Presheaf/                   # 表現（Channel^op → Set）
 │       ├── Channel.purs            # Channel 圏の対象
 │       ├── ChannelAdapter.purs     # 基底型クラス
 │       ├── Smaregi.purs            # スマレジ連携
 │       ├── Rakuten.purs            # 楽天市場連携
+│       ├── Yahoo.purs              # Yahoo!ショッピング連携
 │       └── Stripe.purs             # Stripe 連携
 │
 ├── Control/                        # Arrow 制御構造
@@ -89,9 +97,12 @@ src/
         ├── InventoryAttractor.purs # Attractor の DO 実装
         ├── Router.purs             # Hono ルーター
         └── FFI/                    # Workers 固有 API
-            ├── DurableObject.purs
-            ├── SqlStorage.purs
-            └── ...
+            ├── DurableObject.purs  # DO 基本操作
+            ├── SqlStorage.purs     # SQLite Storage
+            ├── Request.purs        # Request 操作
+            ├── Response.purs       # Response 操作
+            ├── Fetch.purs          # Fetch API
+            └── Crypto.purs         # 暗号操作
 
 tlaplus/
 └── specs/                          # TLA+ 形式検証
@@ -139,13 +150,23 @@ wrangler deploy --env production   # 本番環境
 
 ## API エンドポイント
 
+### 在庫操作
+
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/inventory/:productId/:subjectId` | GET | 在庫取得 |
+| `/api/inventory/:productId/:subjectId` | GET | 在庫取得（Thing × Subject） |
+| `/api/inventory/:productId` | GET | 在庫取得（デフォルト Subject） |
 | `/api/inventory` | POST | 在庫作成/更新 |
-| `/api/inventory/adjust` | POST | 在庫調整 |
-| `/api/inventory/reserve` | POST | 在庫予約 |
-| `/api/sync/:channel/:productId` | POST | チャネル同期 |
+| `/api/adjust` | POST | 在庫調整 |
+| `/api/reserve` | POST | 在庫予約 |
+| `/api/reserve/:reservationId` | DELETE | 予約解放 |
+
+### 同期・ログ
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/sync/:productId` | GET | 同期状態取得 |
+| `/api/log/:productId` | GET | 在庫変動ログ取得 |
 
 > 注: `subjectId` は Subject（倉庫、店舗など）を識別する。Thing は Subject に包摂される。
 > 旧 API の `locationId` は `subjectId` に統合された。
