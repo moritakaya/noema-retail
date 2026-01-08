@@ -31,10 +31,11 @@ data InventoryF a
 
 ```purescript
 -- 新: f :: Type -> Type -> Type
+-- 注: SubjectId は Thing を包摂する Guardian（倉庫、店舗など）を識別
 data InventoryF i o
-  = GetStock ThingId LocationId (i -> Unit) (StockInfo -> o)
-  | AdjustStock ThingId LocationId (i -> QuantityDelta) (Quantity -> o)
-  | SetStock ThingId LocationId (i -> Quantity) (Unit -> o)
+  = GetStock ThingId SubjectId (i -> Unit) (StockInfo -> o)
+  | AdjustStock ThingId SubjectId (i -> QuantityDelta) (Quantity -> o)
+  | SetStock ThingId SubjectId (i -> Quantity) (Unit -> o)
 ```
 
 ### 変換パターン
@@ -60,8 +61,8 @@ getStock :: ThingId -> Intent InventoryF Quantity
 getStock tid = liftIntent (GetStock tid identity)
 
 -- 新
-getStock :: ThingId -> LocationId -> Intent' InventoryF Unit StockInfo
-getStock tid lid = liftEffect (GetStock tid lid identity identity)
+getStock :: ThingId -> SubjectId -> Intent' InventoryF Unit StockInfo
+getStock tid sid = liftEffect (GetStock tid sid identity identity)
 ```
 
 ### パターン 2: 結果を使う合成
@@ -75,12 +76,12 @@ processOrder tid = do
   pure unit
 
 -- 新（Arrow 合成）
-processOrder :: ThingId -> LocationId -> Intent' InventoryF Unit Quantity
-processOrder tid lid =
-  getStock tid lid
+processOrder :: ThingId -> SubjectId -> Intent' InventoryF Unit Quantity
+processOrder tid sid =
+  getStock tid sid
   >>> arrIntent (\info -> info.quantity)
   >>> arrIntent (\(Quantity q) -> QuantityDelta (-1))
-  >>> adjustStock tid lid
+  >>> adjustStock tid sid
 ```
 
 ### パターン 3: 並列取得
@@ -94,9 +95,9 @@ getBoth tid1 tid2 = do
   pure (Tuple q1 q2)
 
 -- 新（Arrow 並列合成）
-getBoth :: ThingId -> ThingId -> LocationId -> Intent' InventoryF Unit (Tuple StockInfo StockInfo)
-getBoth tid1 tid2 lid =
-  getStock tid1 lid &&& getStock tid2 lid
+getBoth :: ThingId -> ThingId -> SubjectId -> Intent' InventoryF Unit (Tuple StockInfo StockInfo)
+getBoth tid1 tid2 sid =
+  getStock tid1 sid &&& getStock tid2 sid
 ```
 
 ### パターン 4: 分岐（禁止→Handler へ移動）
@@ -114,20 +115,20 @@ checkAndAdjust tid = do
 -- 分岐は Handler（Cognition）で処理
 
 -- Step 1: Intent は線形に
-checkStock :: ThingId -> LocationId -> Intent' InventoryF Unit StockInfo
+checkStock :: ThingId -> SubjectId -> Intent' InventoryF Unit StockInfo
 checkStock = getStock
 
 -- Step 2: Handler で分岐を処理
 handleCheckAndAdjust :: StockInfo -> Aff Unit
 handleCheckAndAdjust info =
   if info.available > Quantity 0
-    then runAdjust info.thingId info.locationId (QuantityDelta (-1))
+    then runAdjust info.thingId info.subjectId (QuantityDelta (-1))
     else pure unit
 
 -- Step 3: 組み合わせて使用
-processWithBranching :: ThingId -> LocationId -> Aff Unit
-processWithBranching tid lid = do
-  info <- runHandler inventoryHandler (checkStock tid lid) unit
+processWithBranching :: ThingId -> SubjectId -> Aff Unit
+processWithBranching tid sid = do
+  info <- runHandler inventoryHandler (checkStock tid sid) unit
   handleCheckAndAdjust info
 ```
 
@@ -151,13 +152,13 @@ inventoryHandler (AdjustStock tid delta next) = do
 ```purescript
 -- 新: forall a b. f a b -> a -> m b
 inventoryHandler :: forall a b. InventoryF a b -> a -> Aff b
-inventoryHandler (GetStock tid lid fi fo) input = do
+inventoryHandler (GetStock tid sid fi fo) input = do
   let _ = fi input  -- 入力を消費（通常は Unit）
-  info <- getFromDB tid lid
+  info <- getFromDB tid sid
   pure (fo info)
-inventoryHandler (AdjustStock tid lid fi fo) input = do
+inventoryHandler (AdjustStock tid sid fi fo) input = do
   let delta = fi input
-  newQty <- adjustInDB tid lid delta
+  newQty <- adjustInDB tid sid delta
   pure (fo newQty)
 ```
 
@@ -173,9 +174,9 @@ adjustStock :: ThingId -> QuantityDelta -> Intent InventoryF Unit
 -- 新
 module Noema.Vorzeichnung.Vocabulary.InventoryF where
 
-getStock :: ThingId -> LocationId -> Intent' InventoryF Unit StockInfo
-adjustStock :: ThingId -> LocationId -> Intent' InventoryF QuantityDelta Quantity
-setStock :: ThingId -> LocationId -> Intent' InventoryF Quantity Unit
+getStock :: ThingId -> SubjectId -> Intent' InventoryF Unit StockInfo
+adjustStock :: ThingId -> SubjectId -> Intent' InventoryF QuantityDelta Quantity
+setStock :: ThingId -> SubjectId -> Intent' InventoryF Quantity Unit
 ```
 
 ## Import の変更
@@ -244,7 +245,7 @@ Arrow ベースのコードは型が複雑になりがち。
 
 ```purescript
 step1 :: Intent' InventoryF Unit StockInfo
-step1 = getStock tid lid
+step1 = getStock tid sid
 
 step2 :: Intent' InventoryF StockInfo Quantity
 step2 = arrIntent (\info -> info.quantity)

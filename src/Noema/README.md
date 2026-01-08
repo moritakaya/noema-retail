@@ -22,6 +22,7 @@ Intent ⊣ Cognition : Struct ⇄ Prop
 
 | モジュール | 圏論的役割 | 説明 |
 |-----------|-----------|------|
+| [Core/](Core/README.md) | 基底圏 | 基本型と座標系（Locus, World） |
 | [Vorzeichnung/](Vorzeichnung/README.md) | 左随伴（自由関手） | 意図の構造化 |
 | [Cognition/](Cognition/README.md) | 右随伴（忘却関手） | 意図の解釈・実行 |
 | Sedimentation/ | 代数の台 | 状態の沈殿・定着 |

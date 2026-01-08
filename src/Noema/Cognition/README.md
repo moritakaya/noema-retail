@@ -52,12 +52,14 @@ TLA+ 仕様との対応：
 ```purescript
 import Noema.Cognition.InventoryHandler (runInventoryIntent, mkInventoryEnv)
 import Noema.Vorzeichnung.Vocabulary.InventoryF (getStock)
+import Noema.Core.Locus (ThingId(..), mkSubjectId)
 
 -- Intent を実行
 main :: Effect Unit
 main = do
   let env = mkInventoryEnv sqlStorage
-  let intent = getStock (ThingId "product-1") (LocationId "warehouse-1")
+  -- 注: SubjectId は Thing を包摂する Guardian（倉庫、店舗など）を識別
+  let intent = getStock (ThingId "product-1") (mkSubjectId "warehouse-1")
 
   -- runIntent: Intent → Effect（忘却）
   result <- runInventoryIntent env intent unit

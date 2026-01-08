@@ -106,10 +106,11 @@ CREATE TABLE product_channel (
 
 ```sql
 -- 統合在庫（Single Source of Truth）
+-- 注: subject_id は Thing を包摂する Guardian（倉庫、店舗など）を識別
 CREATE TABLE inventory (
     id TEXT PRIMARY KEY,
     product_id TEXT NOT NULL REFERENCES product(id),
-    location_id TEXT NOT NULL,              -- 'warehouse', 'store_001', etc.
+    subject_id TEXT NOT NULL,               -- 'warehouse', 'store_001', etc.
     quantity INTEGER NOT NULL DEFAULT 0,
     reserved INTEGER NOT NULL DEFAULT 0,    -- 予約済み（注文確定待ち）
     available INTEGER GENERATED ALWAYS AS (quantity - reserved) STORED,
@@ -225,11 +226,12 @@ CREATE TABLE channel_sync (
 ### 6.1 在庫操作（InventoryF）
 
 ```purescript
+-- 注: SubjectId は Thing を包摂する Guardian（倉庫、店舗など）を識別
 data InventoryF next
   -- 在庫操作
-  = GetStock ProductId LocationId (Quantity -> next)
-  | AdjustStock ProductId LocationId QuantityDelta Reason (Inventory -> next)
-  | ReserveStock ProductId LocationId Quantity OrderRef (ReservationId -> next)
+  = GetStock ProductId SubjectId (Quantity -> next)
+  | AdjustStock ProductId SubjectId QuantityDelta Reason (Inventory -> next)
+  | ReserveStock ProductId SubjectId Quantity OrderRef (ReservationId -> next)
   | ReleaseReservation ReservationId (Unit -> next)
   -- チャネル同期
   | SyncToChannel ProductId Channel (SyncResult -> next)

@@ -46,6 +46,8 @@ tlaplus/
 ---- MODULE InventorySimple ----
 EXTENDS Integers, FiniteSets
 
+\* 注: LocationIds は TLA+ モデル内の抽象名。
+\* PureScript では SubjectId（Thing を包摂する Guardian）に対応。
 CONSTANTS ProductIds, LocationIds, MaxQuantity, Channels
 
 VARIABLES stock, reserved, pendingSync

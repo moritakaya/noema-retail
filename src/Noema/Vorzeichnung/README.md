@@ -68,11 +68,13 @@ operation1 >>> operation2 >>> operation3
 ```purescript
 import Noema.Vorzeichnung.Intent (Intent, liftEffect)
 import Noema.Vorzeichnung.Vocabulary.InventoryF (getStock, setStock)
+import Noema.Core.Locus (ThingId, SubjectId, Quantity(..))
 
 -- 在庫確認して更新する Intent
-checkAndUpdate :: ThingId -> LocationId -> Intent InventoryF Unit Unit
-checkAndUpdate tid lid =
-  getStock tid lid >>> arr (\info -> Quantity (info.quantity + 10)) >>> setStock tid lid
+-- 注: SubjectId は Thing を包摂する Guardian（倉庫、店舗など）を識別
+checkAndUpdate :: ThingId -> SubjectId -> Intent InventoryF Unit Unit
+checkAndUpdate tid sid =
+  getStock tid sid >>> arr (\info -> Quantity (info.quantity + 10)) >>> setStock tid sid
 ```
 
 ## 関連
