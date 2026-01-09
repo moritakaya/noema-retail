@@ -36,9 +36,9 @@ module Noema.Vorzeichnung.Vocabulary.InventoryF
   , InventoryIntent
   -- Types (re-exported from Topos/Situs)
   , module Noema.Topos.Situs
-  -- Types (re-exported from Gateway)
-  , module Gateway.Channel
-  , module Gateway.InventoryAdapter
+  -- Types (re-exported from Horizont)
+  , module Noema.Horizont.Channel
+  , module Noema.Horizont.InventoryCarrier
   -- Local types
   , StockInfo
   -- Smart constructors
@@ -55,8 +55,8 @@ import Prelude
 
 import Noema.Vorzeichnung.Intent (Intent, liftEffect)
 import Noema.Topos.Situs (ThingId(..), SubjectId(..), Quantity(..), QuantityDelta(..), mkThingId, mkSubjectId, unwrapThingId, unwrapSubjectId, mkQuantity, unwrapQuantity, mkQuantityDelta, unwrapQuantityDelta)
-import Gateway.Channel (Channel(..))
-import Gateway.InventoryAdapter (SyncResult(..))
+import Noema.Horizont.Channel (Channel(..))
+import Noema.Horizont.InventoryCarrier (SyncResult(..))
 
 -- ============================================================
 -- 在庫情報

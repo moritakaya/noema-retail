@@ -1,10 +1,10 @@
--- | Gateway.Smaregi
+-- | Noema.Horizont.Smaregi
 -- |
--- | スマレジ Platform API との連携アダプター。
+-- | スマレジ Platform API との連携 Carrier。
 -- |
 -- | 認証: Bearer token
 -- | API: https://api.smaregi.jp/
-module Gateway.Smaregi
+module Noema.Horizont.Smaregi
   ( SmaregiAdapter
   , SmaregiConfig
   , mkSmaregiAdapter
@@ -19,8 +19,8 @@ import Data.Tuple.Nested ((/\))
 import Effect.Aff (Aff)
 import Foreign.Object as Object
 import Noema.Topos.Situs (ThingId(..), Quantity(..), Timestamp)
-import Gateway.Channel (Channel(..))
-import Gateway.InventoryAdapter (class InventoryAdapter, SyncResult(..), getStock, setStock)
+import Noema.Horizont.Channel (Channel(..))
+import Noema.Horizont.InventoryCarrier (class InventoryCarrier, SyncResult(..), getStock, setStock)
 import Noema.Horizont.Carrier (class Carrier, CarrierError(..))
 import Platform.Cloudflare.FFI.Fetch (fetchWithInit)
 import Platform.Cloudflare.FFI.Response (status, ok, text)
@@ -45,8 +45,8 @@ instance Carrier SmaregiAdapter where
   carrierName _ = "Smaregi"
   healthCheck _ = pure $ Right unit
 
--- | InventoryAdapter インスタンス
-instance InventoryAdapter SmaregiAdapter where
+-- | InventoryCarrier インスタンス
+instance InventoryCarrier SmaregiAdapter where
   channel _ = Smaregi
 
   getStock (SmaregiAdapter config) (ThingId productId) = do

@@ -1,6 +1,6 @@
--- | Gateway.Stripe
+-- | Noema.Horizont.Stripe
 -- |
--- | Stripe 決済 API との連携アダプター。
+-- | Stripe 決済 API との連携 Carrier。
 -- |
 -- | 認証: API Key (Bearer token)
 -- | Webhook: HMAC-SHA256 署名検証
@@ -8,7 +8,7 @@
 -- |
 -- | 注意: Stripe は在庫管理機能を持たないため、
 -- | syncToNoema/syncFromNoema は在庫変更イベントの処理のみ。
-module Gateway.Stripe
+module Noema.Horizont.Stripe
   ( StripeAdapter
   , StripeConfig
   , ProductMapping
@@ -26,8 +26,8 @@ import Data.String (split, Pattern(..), indexOf)
 import Data.Array (filter)
 import Effect.Aff (Aff)
 import Noema.Topos.Situs (ThingId(..))
-import Gateway.Channel (Channel(..))
-import Gateway.InventoryAdapter (class InventoryAdapter, SyncResult(..), InventoryEvent(..))
+import Noema.Horizont.Channel (Channel(..))
+import Noema.Horizont.InventoryCarrier (class InventoryCarrier, SyncResult(..), InventoryEvent(..))
 import Noema.Horizont.Carrier (class Carrier, CarrierError(..))
 import Platform.Cloudflare.FFI.Crypto (hmacSha256, secureCompare)
 
@@ -118,8 +118,8 @@ instance Carrier StripeAdapter where
   carrierName _ = "Stripe"
   healthCheck _ = pure $ Right unit
 
--- | InventoryAdapter インスタンス
-instance InventoryAdapter StripeAdapter where
+-- | InventoryCarrier インスタンス
+instance InventoryCarrier StripeAdapter where
   channel _ = Stripe
 
   -- Stripe には在庫管理機能がないため、ダミー実装

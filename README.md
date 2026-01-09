@@ -89,9 +89,9 @@ packages/
     │   │   ├── Cognition/
     │   │   │   ├── InventoryHandler.purs
     │   │   │   └── StorageHandler.purs
-    │   ├── Gateway/               # Horizont 実装（Carrier 具象）
+    │   ├── Horizont/              # 外界との地平線（Carrier 実装）
     │   │   ├── Channel.purs
-    │   │   ├── InventoryAdapter.purs
+    │   │   ├── InventoryCarrier.purs
     │   │   └── Rakuten, Smaregi, Yahoo, Stripe
     │   ├── TlaPlus/               # TLA+ 連携
     │   └── Platform/Cloudflare/

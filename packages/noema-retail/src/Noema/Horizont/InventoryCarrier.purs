@@ -1,14 +1,14 @@
--- | Gateway.InventoryAdapter
+-- | Noema.Horizont.InventoryCarrier
 -- |
 -- | 在庫管理用 Carrier 型クラス。
--- | Carrier を継承し、在庫固有のメソッドを追加。
+-- | noema-core の Carrier を継承し、在庫固有のメソッドを追加。
 -- |
 -- | 圏論的解釈：
--- | InventoryAdapter は Channel^op → Set として機能する。
+-- | InventoryCarrier は Channel^op → Set として機能する。
 -- | 各チャネルの在庫データを Noema 統一形式に変換する自然変換。
 -- | Horizont（地平線）を越えて外部在庫データを担う。
-module Gateway.InventoryAdapter
-  ( class InventoryAdapter
+module Noema.Horizont.InventoryCarrier
+  ( class InventoryCarrier
   , channel
   , getStock
   , setStock
@@ -28,7 +28,7 @@ import Data.Either (Either)
 import Data.Maybe (Maybe)
 import Effect.Aff (Aff)
 import Noema.Topos.Situs (ThingId, Quantity, Timestamp)
-import Gateway.Channel (Channel)
+import Noema.Horizont.Channel (Channel)
 import Noema.Horizont.Carrier (class Carrier, CarrierError)
 
 -- | 同期結果
@@ -66,7 +66,7 @@ type OrderInfo =
 -- | Carrier を継承し、在庫固有のメソッドを追加。
 -- | 各チャネル（楽天、スマレジ等）はこのインターフェースを実装する。
 -- | Horizont（地平線）を越えて外部在庫システムと接続する。
-class Carrier a <= InventoryAdapter a where
+class Carrier a <= InventoryCarrier a where
   -- | この Carrier が対応するチャネル
   channel :: a -> Channel
 

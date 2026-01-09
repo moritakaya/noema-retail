@@ -1,10 +1,10 @@
--- | Gateway.Yahoo
+-- | Noema.Horizont.Yahoo
 -- |
--- | Yahoo!ショッピング API との連携アダプター。
+-- | Yahoo!ショッピング API との連携 Carrier。
 -- |
 -- | 認証: OAuth2（リフレッシュトークンでアクセストークン取得）
 -- | API: https://circus.shopping.yahooapis.jp/ShoppingWebService/V1/
-module Gateway.Yahoo
+module Noema.Horizont.Yahoo
   ( YahooAdapter
   , YahooConfig
   , TokenCache
@@ -27,7 +27,7 @@ import Effect.Ref as Ref
 import Effect.Class (liftEffect)
 import Foreign.Object as Object
 import Noema.Topos.Situs (ThingId(..), Quantity(..))
-import Gateway.InventoryAdapter (StockInfo)
+import Noema.Horizont.InventoryCarrier (StockInfo)
 import Noema.Horizont.Carrier (CarrierError(..))
 import Platform.Cloudflare.FFI.Fetch (fetchWithInit)
 import Platform.Cloudflare.FFI.Response (status, ok, text)

@@ -1,8 +1,12 @@
--- | Gateway.Channel
+-- | Noema.Horizont.Channel
 -- |
 -- | 小売業ドメインのチャネル定義。
 -- | 各チャネルは外部システム（POS、EC サイト、決済等）を表す。
-module Gateway.Channel where
+-- |
+-- | 圏論的位置づけ:
+-- | Channel は Horizont（外的前層）の基底圏の対象。
+-- | Inventory は Presheaf: Channel^op → Set として表現される。
+module Noema.Horizont.Channel where
 
 import Prelude
 

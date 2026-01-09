@@ -16,7 +16,7 @@ import Effect.Console (log)
 
 import Noema.Vorzeichnung.Intent (Intent', runIntent)
 import Noema.Topos.Situs (ThingId(..), SubjectId, Quantity(..), QuantityDelta(..), mkSubjectId)
-import Gateway.Channel (Channel(..))
+import Noema.Horizont.Channel (Channel(..))
 import Noema.Vorzeichnung.Vocabulary.InventoryF
   ( InventoryF(..)
   , InventoryIntent

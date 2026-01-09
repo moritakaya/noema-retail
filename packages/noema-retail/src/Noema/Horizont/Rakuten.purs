@@ -1,10 +1,10 @@
--- | Gateway.Rakuten
+-- | Noema.Horizont.Rakuten
 -- |
--- | 楽天市場 RMS API との連携アダプター。
+-- | 楽天市場 RMS API との連携 Carrier。
 -- |
 -- | 認証: ESA（serviceSecret:licenseKey を Base64 エンコード）
 -- | API: https://api.rms.rakuten.co.jp/es/2.0/
-module Gateway.Rakuten
+module Noema.Horizont.Rakuten
   ( RakutenAdapter
   , RakutenConfig
   , mkRakutenAdapter
@@ -22,8 +22,8 @@ import Data.Tuple.Nested ((/\))
 import Effect.Aff (Aff)
 import Foreign.Object as Object
 import Noema.Topos.Situs (ThingId(..), Quantity(..))
-import Gateway.Channel (Channel(..))
-import Gateway.InventoryAdapter (class InventoryAdapter, SyncResult(..), getStock, setStock)
+import Noema.Horizont.Channel (Channel(..))
+import Noema.Horizont.InventoryCarrier (class InventoryCarrier, SyncResult(..), getStock, setStock)
 import Noema.Horizont.Carrier (class Carrier, CarrierError(..))
 import Platform.Cloudflare.FFI.Fetch (fetchWithInit)
 import Platform.Cloudflare.FFI.Response (status, ok, text)
@@ -68,8 +68,8 @@ instance Carrier RakutenAdapter where
     -- 簡易ヘルスチェック: ライセンス有効期限確認のみ
     pure $ Right unit
 
--- | InventoryAdapter インスタンス
-instance InventoryAdapter RakutenAdapter where
+-- | InventoryCarrier インスタンス
+instance InventoryCarrier RakutenAdapter where
   channel _ = Rakuten
 
   getStock (RakutenAdapter config) (ThingId productId) = do

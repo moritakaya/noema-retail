@@ -51,8 +51,8 @@ noema-core (DSL)              noema-retail (実装)
 ├── Arrow 型クラス            ├── InventoryF（ドメイン語彙）
 ├── Intent / Handler          ├── HttpF / StorageF（インフラ）
 ├── AVDC 語彙                 ├── Handlers（具体実装）
-│   ├── SubjectF              ├── Gateway/（チャネル実装）
-│   ├── ThingF                │   ├── Channel, InventoryAdapter
+│   ├── SubjectF              ├── Horizont/（チャネル実装）
+│   ├── ThingF                │   ├── Channel, InventoryCarrier
 │   ├── RelationF             │   └── Rakuten, Smaregi, Yahoo, Stripe
 │   ├── ContractF             ├── InventoryAttractor（Retail固有DO）
 │   └── NoemaF                └── TlaPlus/
@@ -116,9 +116,9 @@ packages/
     │   │   └── Cognition/
     │   │       ├── InventoryHandler.purs
     │   │       └── StorageHandler.purs
-    │   ├── Gateway/                   # 外部チャネル Carrier 実装
-    │   │   ├── Channel.purs           # Channel 列挙型
-    │   │   ├── InventoryAdapter.purs  # 在庫用 Carrier 型クラス
+    │   ├── Horizont/                  # 外部チャネル Carrier 実装
+    │   │   ├── Channel.purs           # Channel 基底圏の対象
+    │   │   ├── InventoryCarrier.purs  # 在庫用 Carrier 型クラス
     │   │   ├── Rakuten.purs
     │   │   ├── Smaregi.purs
     │   │   ├── Yahoo.purs
@@ -249,8 +249,9 @@ Noema は既存の設計手法（DDD, Clean Architecture 等）に依存しな�
 | Vocabulary | ドメイン語彙 | Domain Model |
 | Arrow Effects | 分岐禁止の効果系 | Effect System |
 | Topos | 内的論理空間 | - |
-| Horizont | 外界との地平線 | Gateway/Adapter |
-| Carrier | 外部接続の担体 | Adapter |
+| Horizont | 外界との地平線 | Gateway |
+| Carrier | 外部接続の担体（noema-core） | Adapter |
+| InventoryCarrier | 在庫用 Carrier（noema-retail） | Inventory Adapter |
 
 ### 設計書更新のトリガー
 

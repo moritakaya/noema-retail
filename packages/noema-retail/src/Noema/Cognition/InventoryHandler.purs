@@ -46,7 +46,7 @@ import Noema.Topos.Situs
   , unwrapSubjectId
   , unwrapQuantity
   )
-import Gateway.Channel (Channel(..))
+import Noema.Horizont.Channel (Channel(..))
 import Noema.Vorzeichnung.Vocabulary.InventoryF
   ( InventoryF(..)
   , InventoryIntent
