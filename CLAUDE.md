@@ -45,7 +45,6 @@
 ```
 Sedimentation/（沈殿）
 ├── Factum.purs      -- 解釈の結果（まだ流動的な事実）
-├── Attractor.purs   -- 沈殿の場（Durable Object）
 └── Seal.purs        -- 沈殿の証明（確定した事実）
 
 流れ:
@@ -121,7 +120,6 @@ packages/
 │   │   │   │   └── Interpretation.purs   # 解釈（f ~> Factum）
 │   │   │   └── Sedimentation/
 │   │   │       ├── Factum.purs    # 流動的事実（newtype Factum a = Factum (Effect a)）
-│   │   │       ├── Attractor.purs # 沈殿の場（DO）
 │   │   │       └── Seal.purs      # 確定した事実
 │   │   └── Platform/Cloudflare/   # 汎用 Cloudflare インフラ
 │   │       ├── Router.purs        # HTTP ルーター
@@ -321,13 +319,58 @@ Thing（物）: 意志を持たない → Subject に包摂される
 
 ```
 Situs = 空間座標（Site の点、DO の ID）
-Nomos = 法座標（被覆構造、合法性の規定）
+Nomos = 法座標（本則 + 附則）
+World = (NomosVersion, region, timestamp)
 Presheaf = 前層（ステージング環境）
 
 Base 圏: DO のネットワーク（水平射 = RPC）
 Fiber 圏: DO 内の状態空間（垂直射 = Sediment）
 Presheaf → Sheaf: 層化関手（Sedimentation）
 ```
+
+### Nomos（法の構造）
+
+```purescript
+type Nomos =
+  { version :: NomosVersion
+  , rules :: Rules                    -- 本則（将来は Lean4 で検証）
+  , supplementary :: SupplementaryProvisions  -- 附則
+  , predecessor :: Maybe NomosVersion
+  }
+
+type SupplementaryProvisions =
+  { effectiveFrom :: Timestamp        -- 施行日
+  , existingContracts :: ContractTransition
+  , gracePeriod :: Maybe Duration
+  , exceptions :: Array ExceptionRule
+  }
+
+data ContractTransition = PreserveOldLaw | MigrateToNewLaw | CaseByCase
+```
+
+### Connection（位相論的接続）
+
+Nomos バージョン間の「連続的な平行移動」を検証する。
+
+| 分類 | 意味 | 例 |
+|------|------|-----|
+| Flat | 連続的移行可能 | ドキュメント修正、パフォーマンス改善 |
+| Curved | 非連続、警告を伴う | 予約上限の変更、スキーマの追加 |
+| Critical | 即時適用必須 | セキュリティパッチ、法令対応 |
+
+### 判例（Case Law）
+
+Noema には「エラー」という概念はない。
+Cognition が正常に崩落しなかったケースは「判例」として記録される。
+
+```purescript
+data StagingOutcome
+  = Sedimented SedimentId World  -- 正常に沈殿
+  | Abandoned                     -- ユーザーによる取り消し
+  | Rejected World Reason         -- 判例
+```
+
+判例は将来の Nomos 改訂（立法）に影響を与える。
 
 ### Thing = Subject の包摂
 

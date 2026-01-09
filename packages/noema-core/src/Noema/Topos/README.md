@@ -17,13 +17,15 @@ Sheaf（層）= Sedimentation の結果
 |------|------|------|
 | **Topos** | グロタンディーク・トポス Sh(C) | このディレクトリ全体 |
 | **Situs** | Site C の対象（点） | DO の識別子 |
-| **Nomos** | 被覆構造（Grothendieck topology） | Nomos のバージョン |
+| **Nomos** | 被覆構造（Grothendieck topology） | 法の構造（本則 + 附則） |
+| **World** | Site の特定の点における法的文脈 | (NomosVersion, region, timestamp) |
 | **Presheaf** | 前層 Set^{C^op} | ステージング環境 |
+| **Connection** | 位相論的接続 | Nomos バージョン間の移行検証 |
 
 ## 主要コンポーネント
 
 - `Situs.purs`: 空間座標（Site の点、DO の識別子）
-- `Nomos.purs`: 法座標（被覆構造、合法性の規定）
+- `Nomos.purs`: 法座標（被覆構造、附則、Connection）
 - `Presheaf.purs`: ステージング環境（層化前の状態）
 
 ## グロタンディーク構成との対応
@@ -52,6 +54,89 @@ Sheaf（層）= Sedimentation の結果
 └─────────────────────────────────────────────────────────────┘
 ```
 
+## Nomos の構造
+
+Nomos は「本則」と「附則」から構成される。
+
+```purescript
+type Nomos =
+  { version :: NomosVersion
+  , rules :: Rules                    -- 本則（Lean4 で検証）
+  , supplementary :: SupplementaryProvisions  -- 附則
+  , predecessor :: Maybe NomosVersion
+  }
+```
+
+### 本則（Rules）
+
+```purescript
+type Rules =
+  { schemaVersion :: String     -- スキーマバージョン
+  , constraints :: Array String -- 制約（SQL CHECK等）
+  , validations :: Array String -- バリデーションルール
+  }
+```
+
+将来は Lean4 で証明された規則の参照を保持。
+
+### 附則（Supplementary Provisions）
+
+実際の法律と同様、施行時期や既存契約への適用を規定。
+
+```purescript
+type SupplementaryProvisions =
+  { effectiveFrom :: Timestamp           -- 施行日
+  , existingContracts :: ContractTransition  -- 既存契約の扱い
+  , gracePeriod :: Maybe Duration        -- 猶予期間
+  , exceptions :: Array ExceptionRule    -- 例外規則
+  }
+
+data ContractTransition
+  = PreserveOldLaw   -- 旧法維持（例: 消費税の経過措置）
+  | MigrateToNewLaw  -- 新法適用（一定期間後）
+  | CaseByCase       -- Connection で動的判定
+```
+
+## Connection（位相論的接続）
+
+Nomos バージョン間の「連続的な平行移動」を検証する。
+
+```
+Nomos v1 ────────────────────▶ Nomos v2
+          Connection(Flat)
+```
+
+### 三分類
+
+| 分類 | 意味 | 例 |
+|------|------|-----|
+| Flat | 連続的移行可能 | ドキュメント修正、パフォーマンス改善 |
+| Curved | 非連続、警告を伴う | 予約上限の変更、スキーマの追加 |
+| Critical | 即時適用必須 | セキュリティパッチ、法令対応 |
+
+```purescript
+data ConnectionType
+  = Flat               -- 平坦：連続的移行可能
+  | Curved Reason      -- 湾曲：非連続、警告を伴う
+  | Critical Reason    -- 臨界：即時適用必須
+
+verifyConnection :: World -> World -> ConnectionType
+```
+
+## 判例（Case Law）
+
+Noema には「エラー」という概念はない。
+Cognition が正常に崩落しなかったケースは「判例」として記録される。
+
+```purescript
+data StagingOutcome
+  = Sedimented SedimentId World  -- 正常に沈殿
+  | Abandoned                     -- ユーザーによる取り消し
+  | Rejected World Reason         -- 判例
+```
+
+判例は将来の Nomos 改訂（立法）に影響を与える。
+
 ## 哲学的基盤
 
 ### Situs（空間座標）
@@ -66,6 +151,15 @@ DO の識別子として機能する。
 被覆構造として「どの操作が合法か」を規定し、
 Sediment の解釈を決定する。
 
+### World（世界）
+
+```
+World = (NomosVersion, region, timestamp)
+```
+
+DO は同じ Situs でも、異なる World にいることがある。
+DO が眠って起きた時、Situs は同じだが World が変わりうる。
+
 ### Presheaf（前層）
 
 まだ層化されていない状態。
@@ -75,9 +169,9 @@ Cognition を通じて層（Sheaf = 事実）へと崩落する。
 ## 使用例
 
 ```purescript
-import Noema.Topos.Situs (SubjectId, ThingId, mkSubjectId)
-import Noema.Topos.Nomos (NomosVersion, World, mkWorld)
-import Noema.Topos.Presheaf (Presheaf, emptyPresheaf, stage, commit)
+import Noema.Topos.Situs (SubjectId, ThingId, mkSubjectId, mkTimestamp)
+import Noema.Topos.Nomos (NomosVersion(..), World, mkWorld, verifyConnection, ConnectionType(..))
+import Noema.Topos.Presheaf (Presheaf, emptyPresheaf, stage, complete, StagingOutcome(..))
 
 -- Subject を識別
 warehouseId :: SubjectId
@@ -85,11 +179,17 @@ warehouseId = mkSubjectId "warehouse-001"
 
 -- 現在の World を取得
 currentWorld :: World
-currentWorld = mkWorld (NomosVersion "1.0.0") timestamp
+currentWorld = mkWorld (NomosVersion "1.0.0") (mkTimestamp 1704067200000.0)
 
 -- Presheaf にステージング
 stagedPresheaf :: Presheaf
-stagedPresheaf = stage warehouseId intentJson (emptyPresheaf stagingId timestamp)
+stagedPresheaf = stage warehouseId intentJson (emptyPresheaf stagingId timestamp currentWorld)
+
+-- Connection を検証
+case verifyConnection targetWorld currentWorld of
+  Flat -> -- 連続的に移行可能
+  Curved reason -> -- 警告付きで移行（附則を参照）
+  Critical reason -> -- 即時対応が必要
 ```
 
 ## 他のモジュールとの関係
@@ -100,8 +200,11 @@ Topos/
 ├── Nomos.purs    ─────────────────────┼──► Vorzeichnung/Vocabulary/
 └── Presheaf.purs ─────────────────────┘         │
                                                  ↓
-                                          Cognition/Handler
+                                          Cognition/Interpretation
                                                  │
                                                  ↓
-                                          Sedimentation/Attractor
+                                          Sedimentation/Factum
+                                                 │
+                                                 ↓
+                                          Sedimentation/Seal（World 記録）
 ```

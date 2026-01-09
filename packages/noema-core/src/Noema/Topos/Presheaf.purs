@@ -23,15 +23,30 @@
 -- | - 複数の Intent をバッチ処理前にステージング
 -- | - トランザクション境界の管理
 -- | - 投機的実行と確定的実行の区別
+-- |
+-- | ## StagingState と StagingOutcome の分離
+-- |
+-- | Noema では「Sediment は不変」という原則がある。
+-- | そのため、ステージングの「進行状態」と「結果」を分離する：
+-- |
+-- | - StagingState: 進行状態（Pending → Processing → Completed）
+-- | - StagingOutcome: 結果（Sedimented / Abandoned / Rejected）
+-- |
+-- | Rejected は「判例」として記録され、将来の Nomos 改訂に影響を与える。
 module Noema.Topos.Presheaf
-  ( Presheaf(..)
-  , StagingId(..)
-  , StagingState(..)
-  , mkStagingId
+  ( -- * Presheaf
+    Presheaf
   , emptyPresheaf
   , stage
-  , commit
-  , rollback
+  , complete
+    -- * StagingId
+  , StagingId(..)
+  , mkStagingId
+    -- * StagingState
+  , StagingState(..)
+    -- * StagingOutcome
+  , StagingOutcome(..)
+  , Reason
   ) where
 
 import Prelude
@@ -40,7 +55,12 @@ import Data.Maybe (Maybe(..))
 import Data.Map (Map)
 import Data.Map as Map
 import Data.Argonaut.Core (Json)
-import Noema.Topos.Situs (Timestamp, SubjectId)
+import Noema.Topos.Situs (Timestamp, SubjectId, SedimentId)
+import Noema.Topos.Nomos (World)
+
+-- ============================================================
+-- StagingId
+-- ============================================================
 
 -- | ステージング ID
 newtype StagingId = StagingId String
@@ -52,18 +72,65 @@ derive newtype instance showStagingId :: Show StagingId
 mkStagingId :: String -> StagingId
 mkStagingId = StagingId
 
--- | ステージングの状態
+-- ============================================================
+-- StagingState（進行状態）
+-- ============================================================
+
+-- | ステージングの進行状態
+-- |
+-- | Presheaf のライフサイクルを表現する。
+-- | RolledBack は存在しない：Noema では Sediment は不変であり、
+-- | 「ロールバック」という概念は StagingOutcome.Abandoned として表現される。
 data StagingState
-  = Pending       -- 保留中
-  | Committed     -- コミット済み
-  | RolledBack    -- ロールバック済み
+  = Pending       -- 保留中（Intent を蓄積中）
+  | Processing    -- 処理中（Sedimentation 実行中）
+  | Completed     -- 完了（結果は outcome フィールドを参照）
 
 derive instance eqStagingState :: Eq StagingState
 
 instance showStagingState :: Show StagingState where
   show Pending = "Pending"
-  show Committed = "Committed"
-  show RolledBack = "RolledBack"
+  show Processing = "Processing"
+  show Completed = "Completed"
+
+-- ============================================================
+-- StagingOutcome（結果）
+-- ============================================================
+
+-- | 結果の理由
+type Reason = String
+
+-- | ステージングの結果
+-- |
+-- | Cognition が Intent を解釈した結果。
+-- | 一度決定したら不変（Noema の原則）。
+-- |
+-- | ## 判例（Case Law）
+-- |
+-- | Rejected は「判例」として記録される。
+-- | Noema には「エラー」という概念はない。
+-- | Cognition が正常に崩落しなかったケースは全て判例となり、
+-- | 将来の Nomos 改訂（立法）に影響を与える。
+-- |
+-- | ## World の記録
+-- |
+-- | Sedimented と Rejected は適用された World を記録する。
+-- | これにより、どの法の下で沈殿/棄却されたかを追跡できる。
+data StagingOutcome
+  = Sedimented SedimentId World  -- 正常に沈殿（適用された World を記録）
+  | Abandoned                     -- ユーザーによる取り消し
+  | Rejected World Reason         -- 判例：Cognition が崩落しなかった
+
+derive instance eqStagingOutcome :: Eq StagingOutcome
+
+instance showStagingOutcome :: Show StagingOutcome where
+  show (Sedimented sid world) = "(Sedimented " <> show sid <> " " <> show world.nomosVersion <> ")"
+  show Abandoned = "Abandoned"
+  show (Rejected world reason) = "(Rejected " <> show world.nomosVersion <> " " <> show reason <> ")"
+
+-- ============================================================
+-- Presheaf
+-- ============================================================
 
 -- | Presheaf: 前層（ステージング環境）
 -- |
@@ -73,22 +140,40 @@ instance showStagingState :: Show StagingState where
 -- | ```
 -- | P(subject) = { staged intents for this subject }
 -- | ```
+-- |
+-- | ## フィールド
+-- |
+-- | - id: ステージング ID
+-- | - state: 進行状態（Pending / Processing / Completed）
+-- | - stagedIntents: Subject ごとのステージングされた Intent
+-- | - createdAt: 作成時刻
+-- | - completedAt: 完了時刻（Completed 時に設定）
+-- | - outcome: 結果（Completed 時に設定）
+-- | - targetWorld: Intent が依拠する World（IntentContext の target）
 type Presheaf =
   { id :: StagingId
   , state :: StagingState
   , stagedIntents :: Map SubjectId (Array Json)
   , createdAt :: Timestamp
-  , committedAt :: Maybe Timestamp
+  , completedAt :: Maybe Timestamp
+  , outcome :: Maybe StagingOutcome  -- 完了時に設定
+  , targetWorld :: World             -- Intent が依拠する World
   }
 
 -- | 空の Presheaf を作成
-emptyPresheaf :: StagingId -> Timestamp -> Presheaf
-emptyPresheaf sid ts =
+-- |
+-- | targetWorld は Intent が依拠する法的文脈を指定する。
+-- | Sedimentation 時に Attractor の現在の World と比較され、
+-- | Connection が検証される。
+emptyPresheaf :: StagingId -> Timestamp -> World -> Presheaf
+emptyPresheaf sid ts world =
   { id: sid
   , state: Pending
   , stagedIntents: Map.empty
   , createdAt: ts
-  , committedAt: Nothing
+  , completedAt: Nothing
+  , outcome: Nothing
+  , targetWorld: world
   }
 
 -- | Intent をステージング
@@ -102,20 +187,16 @@ stage subjectId intent presheaf =
         Just existing -> existing <> [intent]
   in presheaf { stagedIntents = Map.insert subjectId updated presheaf.stagedIntents }
 
--- | Presheaf をコミット（層化の開始）
+-- | Presheaf を完了状態にする
 -- |
--- | Sedimentation へ渡す準備が完了したことを示す。
-commit :: Timestamp -> Presheaf -> Presheaf
-commit ts presheaf = presheaf
-  { state = Committed
-  , committedAt = Just ts
-  }
-
--- | Presheaf をロールバック
--- |
--- | ステージングされた Intent を破棄する。
-rollback :: Presheaf -> Presheaf
-rollback presheaf = presheaf
-  { state = RolledBack
-  , stagedIntents = Map.empty
+-- | Sedimentation の結果を記録する。
+-- | outcome には以下のいずれかを設定：
+-- | - Sedimented: 正常に沈殿
+-- | - Abandoned: ユーザーによる取り消し
+-- | - Rejected: 判例（Cognition が崩落しなかった）
+complete :: Timestamp -> StagingOutcome -> Presheaf -> Presheaf
+complete ts result presheaf = presheaf
+  { state = Completed
+  , completedAt = Just ts
+  , outcome = Just result
   }
