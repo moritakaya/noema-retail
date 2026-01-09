@@ -15,6 +15,36 @@
 -- | 語彙（InventoryF等）は二項関手（Profunctor）として定義されるが、
 -- | Intent 内部では存在型を使って単項関手として扱う。
 -- | これにより、PureScript の型システムの制約内で Arrow を実現する。
+-- |
+-- | ## unsafeCoerce の使用について
+-- |
+-- | このモジュールには2箇所の unsafeCoerce がある：
+-- |
+-- | 1. `first` 関数（Arrow インスタンス, line 131）
+-- | 2. `runIntent` 関数（Par ケース, line 215）
+-- |
+-- | ### 安全性の保証
+-- |
+-- | これらは **構築規律（construction discipline）** により安全が保証される：
+-- |
+-- | - `Par` コンストラクタは `first` 関数経由でのみ構築される
+-- | - `first :: Intent f a b -> Intent f (Tuple a c) (Tuple b c)`
+-- | - 存在型 `Exists (ParF f a b)` が型関係を隠蔽するため unsafeCoerce が必要
+-- | - `runIntent` は `Par` の構築時に確立された型関係を復元する
+-- |
+-- | ### なぜ unsafeCoerce が必要か
+-- |
+-- | PureScript は rank-2 types や GADTs を完全にはサポートしていない。
+-- | 存在型（Exists）を使った Arrow の並列合成（first/second/***）では、
+-- | 中間型が隠蔽されるため、コンパイラは型の同一性を検証できない。
+-- |
+-- | ### 代替案と却下理由
+-- |
+-- | - **Profunctor ベース**: 型が複雑化し、語彙定義が煩雑になる
+-- | - **Monad に制限**: Arrow の表現力を失う（並列合成不可）
+-- | - **外部ライブラリ**: PureScript エコシステムに適切なものがない
+-- |
+-- | 現在の設計は、実用性と安全性のバランスを取った選択である。
 module Noema.Vorzeichnung.Intent
   ( -- * Intent type
     Intent

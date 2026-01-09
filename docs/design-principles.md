@@ -144,7 +144,36 @@ TLA+ モデル検証で発見されたガードを Handler に実装：
 | 純粋変換 | `arr f` | vars' = f(vars) |
 | 効果 | `liftEffect` | Action |
 
-## 6. 設計原則まとめ
+## 6. 技術的決定
+
+### 6.1 unsafeCoerce の使用（Intent.purs）
+
+Intent モジュールには2箇所の `unsafeCoerce` がある。これは意図的な設計決定である。
+
+**使用箇所**:
+- `first` 関数（Arrow インスタンス）
+- `runIntent` 関数（Par ケース）
+
+**安全性の保証**: 構築規律（construction discipline）による
+- `Par` は `first` 関数経由でのみ構築
+- 存在型が型関係を隠蔽するため unsafeCoerce が必要
+- `runIntent` は構築時に確立された型関係を復元
+
+**却下した代替案**:
+| 代替案 | 却下理由 |
+|--------|----------|
+| Profunctor ベース | 型が複雑化、語彙定義が煩雑 |
+| Monad に制限 | Arrow の表現力喪失（並列合成不可） |
+| 外部ライブラリ | PureScript に適切なものがない |
+
+詳細は `packages/noema-core/src/Noema/Vorzeichnung/Intent.purs` のモジュールコメントを参照。
+
+### 6.2 FreerArrow.purs の削除
+
+FreerArrow.purs は開発途中で放棄された試作版であり、Intent.purs が本番実装として採用された。
+設計ドキュメントは `docs/archive/freer-arrow-design.md` にアーカイブ済み。
+
+## 7. 設計原則まとめ
 
 1. **随伴の保存**: Vorzeichnung/ ⊣ Cognition/ が明示的
 2. **分岐禁止**: Arrow Effects で静的構造を強制
@@ -152,6 +181,7 @@ TLA+ モデル検証で発見されたガードを Handler に実装：
 4. **技術非依存**: Noema/ は Platform/ に依存しない
 5. **形式検証**: TLA+ でモデル検証、ガードを Handler に反映
 6. **Presheaf 構造**: Inventory : Channel^op → Set
+7. **構築規律**: unsafeCoerce は構築規律により安全性を保証
 
 ## 参考文献
 
