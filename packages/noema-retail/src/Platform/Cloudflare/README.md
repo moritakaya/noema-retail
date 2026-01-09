@@ -35,6 +35,7 @@ Platform/Cloudflare/
 - `SubjectAttractor.purs`: 主体管理の DO
   - REST API: GET/POST/PATCH /subject
   - Subject の CRUD 操作
+  - Thing スキーマも管理（Thing は Subject に包摂される）
 
 ### FFI（Workers API バインディング）
 
@@ -115,15 +116,26 @@ Cognition/Interpretation.purs
         ↓
                               Cognition/
                               ├── InventoryInterpretation.purs
-                              └── SubjectInterpretation.purs
+                              ├── SubjectInterpretation.purs
+                              └── ThingInterpretation.purs
                                       │
                                       ↓
                               Platform/Cloudflare/
                               ├── InventoryAttractor.purs
-                              ├── SubjectAttractor.purs
+                              ├── SubjectAttractor.purs（+ Thing スキーマ）
                               ├── Router.purs
                               └── FFI/
 ```
+
+## Thing スキーマ（SubjectAttractor 管理）
+
+Thing は Subject に包摂されるため、SubjectAttractor 内で以下のテーブルを管理：
+
+- `thing`: 基本情報（id, situs, last_modified）
+- `thing_property`: 属性（key-value）
+- `thing_sediment`: 変更履歴（INSERT のみ、UPDATE 禁止）
+- `thing_situs_log`: 位置変更履歴
+- `thing_protention`: 予持（未来の Pending Intent）
 
 ## wrangler.json 設定例
 

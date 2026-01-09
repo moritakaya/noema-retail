@@ -80,10 +80,12 @@ packages/
     │   ├── Main.purs              # Worker エントリーポイント
     │   ├── Noema/
     │   │   ├── Vorzeichnung/Vocabulary/
-    │   │   │   └── InventoryF.purs
+    │   │   │   ├── InventoryF.purs
+    │   │   │   └── Item.purs           # Retail 固有の Thing 具体化
     │   │   ├── Cognition/
     │   │   │   ├── InventoryInterpretation.purs
     │   │   │   ├── SubjectInterpretation.purs
+    │   │   │   ├── ThingInterpretation.purs    # Thing 操作の解釈
     │   │   │   └── StorageInterpretation.purs
     │   ├── Horizont/              # 外界との地平線（Carrier 実装）
     │   │   ├── Channel.purs

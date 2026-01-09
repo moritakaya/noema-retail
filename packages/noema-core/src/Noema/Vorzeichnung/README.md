@@ -78,7 +78,26 @@ Vorzeichnung/
 │
 └── Vocabulary/
     ├── SubjectF.purs    ─────────► noema-retail/Cognition/SubjectInterpretation.purs
-    ├── ThingF.purs
+    ├── ThingF.purs      ─────────► noema-retail/Cognition/ThingInterpretation.purs
     ├── InventoryF.purs  ─────────► noema-retail/Cognition/InventoryInterpretation.purs
     └── NoemaF.purs      (Coproduct4)
+```
+
+## ThingF スマートコンストラクタ
+
+```purescript
+import Noema.Vorzeichnung.Vocabulary.ThingF
+
+-- 属性操作
+getProperty :: ThingId -> PropertyKey -> ThingIntent Unit PropertyValue
+setProperty :: ThingId -> PropertyKey -> PropertyValue -> ThingIntent Unit SedimentId
+
+-- 位置操作
+getSitus :: ThingId -> ThingIntent Unit SubjectId
+recordSitusChange :: ThingId -> SitusChange -> ThingIntent Unit SedimentId
+
+-- 時間構造
+getRetention :: ThingId -> Timestamp -> ThingIntent Unit ThingSnapshot
+getPrimal :: ThingId -> ThingIntent Unit ThingState
+registerProtention :: ThingId -> PendingIntent -> ThingIntent Unit ProtentionId
 ```

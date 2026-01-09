@@ -108,4 +108,19 @@ noema-core では Interpretation の型と実行関数のみを定義。
 
 - `InventoryInterpretation.purs`: 在庫操作の解釈
 - `SubjectInterpretation.purs`: 主体操作の解釈
+- `ThingInterpretation.purs`: 物操作の解釈（属性、位置、時間構造）
 - `StorageInterpretation.purs`: ストレージ操作の解釈
+
+### ThingInterpretation の時間構造
+
+```purescript
+-- Husserl の内的時間意識に基づく三層構造
+-- Retention（把持）: 過去の Snapshot を取得
+getRetention :: ThingId -> Timestamp -> ThingIntent Unit ThingSnapshot
+
+-- Primal（原印象）: 現在の状態を取得
+getPrimal :: ThingId -> ThingIntent Unit ThingState
+
+-- Protention（予持）: 未来の Pending Intent を管理
+registerProtention :: ThingId -> PendingIntent -> ThingIntent Unit ProtentionId
+```

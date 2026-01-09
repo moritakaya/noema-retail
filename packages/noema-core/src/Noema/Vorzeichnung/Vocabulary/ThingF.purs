@@ -14,7 +14,8 @@
 -- | - Primal（原印象）: 現在の状態
 -- | - Protention（予持）: 未来の Pending Intent
 module Noema.Vorzeichnung.Vocabulary.ThingF
-  ( PropertyKey(..)
+  ( -- * 型定義
+    PropertyKey(..)
   , PropertyValue
   , TimeRange
   , ChangeReason(..)
@@ -25,6 +26,24 @@ module Noema.Vorzeichnung.Vocabulary.ThingF
   , ThingState
   , Sediment
   , ThingF(..)
+    -- * Intent 型
+  , ThingIntent
+    -- * スマートコンストラクタ（属性）
+  , getProperty
+  , setProperty
+    -- * スマートコンストラクタ（位置）
+  , getSitus
+  , recordSitusChange
+    -- * スマートコンストラクタ（時間 - Retention）
+  , getRetention
+  , getRetentionRange
+    -- * スマートコンストラクタ（時間 - Primal）
+  , getPrimal
+    -- * スマートコンストラクタ（時間 - Protention）
+  , registerProtention
+  , getProtentions
+  , realizeProtention
+  , cancelProtention
   ) where
 
 import Prelude
@@ -32,6 +51,7 @@ import Data.Maybe (Maybe)
 import Data.Map (Map)
 import Data.Argonaut.Core (Json)
 import Noema.Topos.Situs (ThingId, SubjectId, SedimentId, Timestamp, ContractId)
+import Noema.Vorzeichnung.Intent (Intent, liftEffect)
 
 -- | Property のキー
 newtype PropertyKey = PropertyKey String
@@ -162,3 +182,90 @@ instance functorThingF :: Functor (ThingF i) where
     GetProtentions tid toUnit k -> GetProtentions tid toUnit (f <<< k)
     RealizeProtention pid toUnit k -> RealizeProtention pid toUnit (f <<< k)
     CancelProtention pid toUnit k -> CancelProtention pid toUnit (f <<< k)
+
+-- ============================================================
+-- Intent 型
+-- ============================================================
+
+-- | ThingIntent: Thing 操作の Intent
+-- |
+-- | Arrow-based Intent で Thing 操作を表現する。
+-- | 分岐禁止（ArrowChoice なし）により、静的な操作列を保証。
+type ThingIntent a b = Intent (ThingF Unit) a b
+
+-- ============================================================
+-- スマートコンストラクタ
+-- ============================================================
+
+-- | 属性を取得
+-- |
+-- | ```purescript
+-- | intent :: ThingIntent Unit PropertyValue
+-- | intent = getProperty tid (PropertyKey "sku")
+-- | ```
+getProperty :: ThingId -> PropertyKey -> ThingIntent Unit PropertyValue
+getProperty tid key = liftEffect (GetProperty tid key (\_ -> unit) identity)
+
+-- | 属性を設定
+-- |
+-- | ```purescript
+-- | intent :: ThingIntent Unit SedimentId
+-- | intent = setProperty tid (PropertyKey "color") (encodeJson "red")
+-- | ```
+setProperty :: ThingId -> PropertyKey -> PropertyValue -> ThingIntent Unit SedimentId
+setProperty tid key value = liftEffect (SetProperty tid key (\_ -> value) identity)
+
+-- | 位置（Situs）を取得
+-- |
+-- | Thing を包摂する Subject の ID を返す。
+getSitus :: ThingId -> ThingIntent Unit SubjectId
+getSitus tid = liftEffect (GetSitus tid (\_ -> unit) identity)
+
+-- | 位置変更を記録
+-- |
+-- | Situs の変更履歴を Sediment として記録する。
+recordSitusChange :: ThingId -> SitusChange -> ThingIntent Unit SedimentId
+recordSitusChange tid change = liftEffect (RecordSitusChange tid (\_ -> change) identity)
+
+-- | 過去の Snapshot を取得（Retention）
+-- |
+-- | 指定時点での Thing の状態を復元する。
+getRetention :: ThingId -> Timestamp -> ThingIntent Unit ThingSnapshot
+getRetention tid ts = liftEffect (GetRetention tid ts (\_ -> unit) identity)
+
+-- | 期間内の Sediment を取得（Retention）
+-- |
+-- | 指定期間のすべての Sediment を時系列で返す。
+getRetentionRange :: ThingId -> TimeRange -> ThingIntent Unit (Array Sediment)
+getRetentionRange tid range = liftEffect (GetRetentionRange tid range (\_ -> unit) identity)
+
+-- | 現在の状態を取得（Primal）
+-- |
+-- | Sediment の積分値としての現在状態を返す。
+getPrimal :: ThingId -> ThingIntent Unit ThingState
+getPrimal tid = liftEffect (GetPrimal tid (\_ -> unit) identity)
+
+-- | Protention を登録（予持）
+-- |
+-- | 未来に実行される予定の Intent を登録する。
+-- | Alarm と連動して指定時刻に実行される。
+registerProtention :: ThingId -> PendingIntent -> ThingIntent Unit ProtentionId
+registerProtention tid pending = liftEffect (RegisterProtention tid (\_ -> pending) identity)
+
+-- | Protention 一覧を取得
+-- |
+-- | 登録済みの Pending Intent を返す。
+getProtentions :: ThingId -> ThingIntent Unit (Array PendingIntent)
+getProtentions tid = liftEffect (GetProtentions tid (\_ -> unit) identity)
+
+-- | Protention を実現（完了）
+-- |
+-- | Pending Intent を実行済みとしてマークする。
+realizeProtention :: ProtentionId -> ThingIntent Unit SedimentId
+realizeProtention pid = liftEffect (RealizeProtention pid (\_ -> unit) identity)
+
+-- | Protention をキャンセル
+-- |
+-- | 予定された Intent をキャンセルする。
+cancelProtention :: ProtentionId -> ThingIntent Unit Unit
+cancelProtention pid = liftEffect (CancelProtention pid (\_ -> unit) identity)

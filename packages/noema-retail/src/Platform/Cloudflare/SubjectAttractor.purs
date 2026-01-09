@@ -64,6 +64,7 @@ import Noema.Cognition.SubjectInterpretation
   , initializeSubjectSchema
   , runSubjectIntent
   )
+import Noema.Cognition.ThingInterpretation (initializeThingSchema)
 import Noema.Sedimentation.Factum (Factum, collapse, recognize)
 import Platform.Cloudflare.FFI.DurableObject (DurableObjectState, DurableObjectStorage, getStorage, getSql)
 import Platform.Cloudflare.FFI.Request (Request, url, method)
@@ -89,11 +90,15 @@ createAttractor ctx = do
     }
 
 -- | スキーマを初期化（必要な場合のみ）
+-- |
+-- | Subject スキーマと Thing スキーマの両方を初期化する。
+-- | Thing は Subject に包摂されるため、SubjectAttractor 内で管理。
 ensureInitialized :: SubjectAttractorState -> Effect SubjectAttractorState
 ensureInitialized state
   | state.initialized = pure state
   | otherwise = do
       initializeSubjectSchema state.env.sql
+      initializeThingSchema state.env.sql
       pure state { initialized = true }
 
 -- | HTTP リクエストを処理
