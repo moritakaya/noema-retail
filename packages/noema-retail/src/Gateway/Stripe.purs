@@ -1,4 +1,4 @@
--- | Noema Adapter: StripeAdapter
+-- | Gateway.Stripe
 -- |
 -- | Stripe 決済 API との連携アダプター。
 -- |
@@ -8,7 +8,7 @@
 -- |
 -- | 注意: Stripe は在庫管理機能を持たないため、
 -- | syncToNoema/syncFromNoema は在庫変更イベントの処理のみ。
-module Noema.Presheaf.StripeAdapter
+module Gateway.Stripe
   ( StripeAdapter
   , StripeConfig
   , ProductMapping
@@ -25,14 +25,10 @@ import Data.Maybe (Maybe(..))
 import Data.String (split, Pattern(..), indexOf)
 import Data.Array (filter)
 import Effect.Aff (Aff)
-import Noema.Core.Locus (ThingId(..), mkTimestamp)
-import Noema.Presheaf.Channel (Channel(..))
-import Noema.Vorzeichnung.Vocabulary.InventoryF (SyncResult(..))
-import Noema.Presheaf.ChannelAdapter
-  ( class ChannelAdapter
-  , AdapterError(..)
-  , InventoryEvent(..)
-  )
+import Noema.Core.Locus (ThingId(..))
+import Gateway.Channel (Channel(..))
+import Gateway.InventoryAdapter (class InventoryAdapter, SyncResult(..), InventoryEvent(..))
+import Platform.Cloudflare.Gateway.Adapter (class GatewayAdapter, AdapterError(..))
 import Platform.Cloudflare.FFI.Crypto (hmacSha256, secureCompare)
 
 -- | Stripe アダプター設定
@@ -117,8 +113,13 @@ handleWebhook (StripeAdapter config) payload signature = do
       -- charge.refunded → 在庫増加イベント
       pure $ WebhookIgnored "Event type not handled"
 
--- | ChannelAdapter インスタンス
-instance ChannelAdapter StripeAdapter where
+-- | GatewayAdapter インスタンス
+instance GatewayAdapter StripeAdapter where
+  adapterName _ = "Stripe"
+  healthCheck _ = pure $ Right unit
+
+-- | InventoryAdapter インスタンス
+instance InventoryAdapter StripeAdapter where
   channel _ = Stripe
 
   -- Stripe には在庫管理機能がないため、ダミー実装

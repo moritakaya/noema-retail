@@ -1,10 +1,10 @@
--- | Noema Adapter: RakutenAdapter
+-- | Gateway.Rakuten
 -- |
 -- | 楽天市場 RMS API との連携アダプター。
 -- |
 -- | 認証: ESA（serviceSecret:licenseKey を Base64 エンコード）
 -- | API: https://api.rms.rakuten.co.jp/es/2.0/
-module Noema.Presheaf.RakutenAdapter
+module Gateway.Rakuten
   ( RakutenAdapter
   , RakutenConfig
   , mkRakutenAdapter
@@ -19,16 +19,12 @@ import Data.Maybe (Maybe(..))
 import Data.Nullable (toNullable)
 import Data.String (split, Pattern(..))
 import Data.Tuple.Nested ((/\))
+import Effect.Aff (Aff)
 import Foreign.Object as Object
-import Noema.Core.Locus (ThingId(..), Quantity(..), mkTimestamp)
-import Noema.Presheaf.Channel (Channel(..))
-import Noema.Vorzeichnung.Vocabulary.InventoryF (SyncResult(..))
-import Noema.Presheaf.ChannelAdapter
-  ( class ChannelAdapter
-  , getStock
-  , setStock
-  , AdapterError(..)
-  )
+import Noema.Core.Locus (ThingId(..), Quantity(..))
+import Gateway.Channel (Channel(..))
+import Gateway.InventoryAdapter (class InventoryAdapter, SyncResult(..), getStock, setStock)
+import Platform.Cloudflare.Gateway.Adapter (class GatewayAdapter, AdapterError(..))
 import Platform.Cloudflare.FFI.Fetch (fetchWithInit)
 import Platform.Cloudflare.FFI.Response (status, ok, text)
 import Platform.Cloudflare.FFI.Crypto (base64Encode)
@@ -65,8 +61,15 @@ parseProductId productId =
     [manageNumber, variantId] -> { manageNumber, variantId }
     _ -> { manageNumber: productId, variantId: "default" }
 
--- | ChannelAdapter インスタンス
-instance ChannelAdapter RakutenAdapter where
+-- | GatewayAdapter インスタンス
+instance GatewayAdapter RakutenAdapter where
+  adapterName _ = "Rakuten"
+  healthCheck (RakutenAdapter config) = do
+    -- 簡易ヘルスチェック: ライセンス有効期限確認のみ
+    pure $ Right unit
+
+-- | InventoryAdapter インスタンス
+instance InventoryAdapter RakutenAdapter where
   channel _ = Rakuten
 
   getStock (RakutenAdapter config) (ThingId productId) = do

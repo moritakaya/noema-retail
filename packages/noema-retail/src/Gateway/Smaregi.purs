@@ -1,10 +1,10 @@
--- | Noema Adapter: SmaregiAdapter
+-- | Gateway.Smaregi
 -- |
 -- | スマレジ Platform API との連携アダプター。
 -- |
 -- | 認証: Bearer token
 -- | API: https://api.smaregi.jp/
-module Noema.Presheaf.SmaregiAdapter
+module Gateway.Smaregi
   ( SmaregiAdapter
   , SmaregiConfig
   , mkSmaregiAdapter
@@ -19,14 +19,9 @@ import Data.Tuple.Nested ((/\))
 import Effect.Aff (Aff)
 import Foreign.Object as Object
 import Noema.Core.Locus (ThingId(..), Quantity(..), Timestamp)
-import Noema.Presheaf.Channel (Channel(..))
-import Noema.Vorzeichnung.Vocabulary.InventoryF (SyncResult(..))
-import Noema.Presheaf.ChannelAdapter
-  ( class ChannelAdapter
-  , getStock
-  , setStock
-  , AdapterError(..)
-  )
+import Gateway.Channel (Channel(..))
+import Gateway.InventoryAdapter (class InventoryAdapter, SyncResult(..), getStock, setStock)
+import Platform.Cloudflare.Gateway.Adapter (class GatewayAdapter, AdapterError(..))
 import Platform.Cloudflare.FFI.Fetch (fetchWithInit)
 import Platform.Cloudflare.FFI.Response (status, ok, text)
 
@@ -45,8 +40,13 @@ newtype SmaregiAdapter = SmaregiAdapter SmaregiConfig
 mkSmaregiAdapter :: SmaregiConfig -> SmaregiAdapter
 mkSmaregiAdapter = SmaregiAdapter
 
--- | ChannelAdapter インスタンス
-instance ChannelAdapter SmaregiAdapter where
+-- | GatewayAdapter インスタンス
+instance GatewayAdapter SmaregiAdapter where
+  adapterName _ = "Smaregi"
+  healthCheck _ = pure $ Right unit
+
+-- | InventoryAdapter インスタンス
+instance InventoryAdapter SmaregiAdapter where
   channel _ = Smaregi
 
   getStock (SmaregiAdapter config) (ThingId productId) = do

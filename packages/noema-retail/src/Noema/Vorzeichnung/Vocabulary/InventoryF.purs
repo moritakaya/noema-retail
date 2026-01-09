@@ -36,10 +36,9 @@ module Noema.Vorzeichnung.Vocabulary.InventoryF
   , InventoryIntent
   -- Types (re-exported from Core/Locus)
   , module Noema.Core.Locus
-  -- Types (re-exported from Presheaf/Channel)
-  , module Noema.Presheaf.Channel
-  -- Types (re-exported from Presheaf/ChannelAdapter)
-  , module Noema.Presheaf.ChannelAdapter
+  -- Types (re-exported from Gateway)
+  , module Gateway.Channel
+  , module Gateway.InventoryAdapter
   -- Local types
   , StockInfo
   -- Smart constructors
@@ -56,8 +55,8 @@ import Prelude
 
 import Noema.Vorzeichnung.Intent (Intent, liftEffect)
 import Noema.Core.Locus (ThingId(..), SubjectId(..), Quantity(..), QuantityDelta(..), mkThingId, mkSubjectId, unwrapThingId, unwrapSubjectId, mkQuantity, unwrapQuantity, mkQuantityDelta, unwrapQuantityDelta)
-import Noema.Presheaf.Channel (Channel(..))
-import Noema.Presheaf.ChannelAdapter (SyncResult(..))
+import Gateway.Channel (Channel(..))
+import Gateway.InventoryAdapter (SyncResult(..))
 
 -- ============================================================
 -- 在庫情報

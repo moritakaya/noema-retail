@@ -29,9 +29,9 @@
 │                                     (沈殿)                       │
 │                                          │                      │
 │                                          ▼                      │
-│                                 Presheaf/                       │
+│                                 Gateway/                        │
 │                                 Channel^op → Set                │
-│                                 (外界への表現)                   │
+│                                 (外界への接続)                   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -51,15 +51,16 @@ noema-core (DSL)              noema-retail (実装)
 ├── Arrow 型クラス            ├── InventoryF（ドメイン語彙）
 ├── Intent / Handler          ├── HttpF / StorageF（インフラ）
 ├── AVDC 語彙                 ├── Handlers（具体実装）
-│   ├── SubjectF              ├── Channel Adapters
-│   ├── ThingF                ├── InventoryAttractor（Retail固有DO）
-│   ├── RelationF             └── TlaPlus/
-│   ├── ContractF
-│   └── NoemaF
+│   ├── SubjectF              ├── Gateway/（チャネルアダプター）
+│   ├── ThingF                │   ├── Channel, InventoryAdapter
+│   ├── RelationF             │   └── Rakuten, Smaregi, Yahoo, Stripe
+│   ├── ContractF             ├── InventoryAttractor（Retail固有DO）
+│   └── NoemaF                └── TlaPlus/
 ├── Core/Locus, World
 ├── Sedimentation/Attractor, Seal
-├── Presheaf/Channel, ChannelAdapter
-└── Platform/Cloudflare/FFI, Router  # 汎用インフラ
+└── Platform/Cloudflare/
+    ├── FFI, Router  # 汎用インフラ
+    └── Gateway/Adapter  # 汎用 Gateway 型クラス
 ```
 
 **依存方向**: `noema-retail` → `noema-core`（逆方向は禁止）
@@ -87,14 +88,13 @@ packages/
 │   │   │   │       └── NoemaF.purs
 │   │   │   ├── Cognition/
 │   │   │   │   └── Handler.purs   # Handler 基底型
-│   │   │   ├── Sedimentation/
-│   │   │   │   ├── Attractor.purs
-│   │   │   │   └── Seal.purs
-│   │   │   └── Presheaf/
-│   │   │       ├── Channel.purs
-│   │   │       └── ChannelAdapter.purs
+│   │   │   └── Sedimentation/
+│   │   │       ├── Attractor.purs
+│   │   │       └── Seal.purs
 │   │   └── Platform/Cloudflare/   # 汎用 Cloudflare インフラ
 │   │       ├── Router.purs        # HTTP ルーター
+│   │       ├── Gateway/           # 汎用 Gateway 型クラス
+│   │       │   └── Adapter.purs
 │   │       └── FFI/               # Workers API バインディング
 │   │           ├── DurableObject.purs
 │   │           ├── Request.purs
@@ -112,14 +112,16 @@ packages/
     │   │   │   ├── InventoryF.purs
     │   │   │   ├── HttpF.purs
     │   │   │   └── StorageF.purs
-    │   │   ├── Cognition/
-    │   │   │   ├── InventoryHandler.purs
-    │   │   │   └── StorageHandler.purs
-    │   │   └── Presheaf/
-    │   │       ├── Rakuten.purs
-    │   │       ├── Smaregi.purs
-    │   │       ├── Yahoo.purs
-    │   │       └── Stripe.purs
+    │   │   └── Cognition/
+    │   │       ├── InventoryHandler.purs
+    │   │       └── StorageHandler.purs
+    │   ├── Gateway/                   # 外部チャネルアダプター
+    │   │   ├── Channel.purs           # Channel 列挙型
+    │   │   ├── InventoryAdapter.purs  # 在庫用 Adapter 型クラス
+    │   │   ├── Rakuten.purs
+    │   │   ├── Smaregi.purs
+    │   │   ├── Yahoo.purs
+    │   │   └── Stripe.purs
     │   ├── TlaPlus/
     │   │   ├── Extract.purs
     │   │   └── Feedback.purs
@@ -172,8 +174,9 @@ java -jar ~/tla2tools.jar -config InventorySimple.cfg InventorySimple.tla
 1. **随伴の保存**: Vorzeichnung/ ⊣ Cognition/ が明示的
 2. **関手の局所性**: 語彙は Vocabulary/ に集約
 3. **技術非依存**: Noema/ は Platform/ に依存しない
-4. **Presheaf として在庫**: Inventory : Channel^op → Set
+4. **Gateway として在庫**: Inventory : Channel^op → Set（外部システム連携）
 5. **Arrow Effects**: 分岐禁止（ArrowChoice なし）
+6. **Gateway + Platform 統合**: Gateway は Platform 配下（システム境界の一部）
 
 ---
 

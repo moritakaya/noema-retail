@@ -16,7 +16,7 @@ import Effect.Console (log)
 
 import Noema.Vorzeichnung.Intent (Intent', runIntent)
 import Noema.Core.Locus (ThingId(..), SubjectId, Quantity(..), QuantityDelta(..), mkSubjectId)
-import Noema.Presheaf.Channel (Channel(..))
+import Gateway.Channel (Channel(..))
 import Noema.Vorzeichnung.Vocabulary.InventoryF
   ( InventoryF(..)
   , InventoryIntent

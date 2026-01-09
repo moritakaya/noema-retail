@@ -1,58 +1,30 @@
--- | Noema Adapter: ChannelAdapter
+-- | Platform.Cloudflare.Gateway.Adapter
 -- |
--- | チャネルアダプターの基底型クラス。
--- | 各チャネル（楽天、Yahoo、スマレジ、Stripe）はこの型クラスを実装する。
+-- | 汎用 Gateway アダプターの基底型クラス。
+-- | Inventory 等のドメイン固有機能に依存しない。
 -- |
 -- | 圏論的解釈：
--- | ChannelAdapter は Functor の自然変換として機能する。
--- | チャネル固有の形式 → Noema 統一形式への変換を提供する。
-module Noema.Presheaf.ChannelAdapter
-  ( class ChannelAdapter
-  , channel
-  , getStock
-  , setStock
-  , syncToNoema
-  , syncFromNoema
-  , processOrders
+-- | Gateway は Platform（台）から外界への射として機能する。
+-- | Adapter は外部システムとの通信プロトコルを抽象化する。
+module Platform.Cloudflare.Gateway.Adapter
+  ( class GatewayAdapter
+  , adapterName
+  , healthCheck
   -- Types
   , AdapterConfig
   , AdapterError(..)
-  , InventoryEvent(..)
-  , StockInfo
-  , OrderInfo
-  , SyncResult(..)
   -- Utilities
   , handleAdapterError
   , retryWithBackoff
+  , isRetryable
   ) where
 
 import Prelude
 
 import Data.Either (Either(..))
-import Data.Maybe (Maybe)
 import Effect.Aff (Aff, delay)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Data.Time.Duration (Milliseconds(..))
-import Noema.Core.Locus (ThingId, Quantity, Timestamp)
-import Noema.Presheaf.Channel (Channel)
-
--- | 同期結果
--- |
--- | DSL コアの汎用型として定義。
--- | InventoryF 等のドメイン語彙から使用される。
-data SyncResult
-  = SyncSuccess { channel :: Channel, quantity :: Quantity }
-  | SyncFailure { channel :: Channel, error :: String }
-
-derive instance eqSyncResult :: Eq SyncResult
-
--- | 在庫イベント型
--- |
--- | チャネルからの注文処理で生成されるイベント
-data InventoryEvent
-  = SaleEvent ThingId Quantity
-  | ReturnEvent ThingId Quantity
-  | AdjustEvent ThingId Quantity
 
 -- | アダプター設定の共通型
 type AdapterConfig =
@@ -80,42 +52,16 @@ instance Show AdapterError where
     ParseError msg -> "ParseError: " <> msg
     ConfigurationError msg -> "ConfigurationError: " <> msg
 
--- | 在庫情報
-type StockInfo =
-  { productId :: String
-  , quantity :: Int
-  , lastUpdated :: Maybe Timestamp
-  }
-
--- | 注文情報
-type OrderInfo =
-  { orderId :: String
-  , items :: Array { productId :: String, quantity :: Int }
-  , orderDate :: Timestamp
-  , channel :: Channel
-  }
-
--- | チャネルアダプター型クラス
+-- | 汎用 Gateway アダプター型クラス
 -- |
--- | 各チャネルはこのインターフェースを実装する。
-class ChannelAdapter a where
-  -- | このアダプターが対応するチャネル
-  channel :: a -> Channel
+-- | 各外部システムとの接続はこのインターフェースを実装する。
+-- | ドメイン固有のメソッド（getStock 等）は派生型クラスで定義。
+class GatewayAdapter a where
+  -- | アダプター名（識別用）
+  adapterName :: a -> String
 
-  -- | チャネルから在庫を取得
-  getStock :: a -> ThingId -> Aff (Either AdapterError StockInfo)
-
-  -- | チャネルの在庫を更新
-  setStock :: a -> ThingId -> Quantity -> Aff (Either AdapterError Unit)
-
-  -- | チャネル → Noema への同期
-  syncToNoema :: a -> ThingId -> Aff SyncResult
-
-  -- | Noema → チャネルへの同期
-  syncFromNoema :: a -> ThingId -> Quantity -> Aff SyncResult
-
-  -- | 新規注文を処理して在庫イベントを生成
-  processOrders :: a -> Timestamp -> Aff { processed :: Int, errors :: Array String, events :: Array InventoryEvent }
+  -- | ヘルスチェック
+  healthCheck :: a -> Aff (Either AdapterError Unit)
 
 --------------------------------------------------------------------------------
 -- ユーティリティ

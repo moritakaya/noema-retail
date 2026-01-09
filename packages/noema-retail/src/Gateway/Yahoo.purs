@@ -1,10 +1,10 @@
--- | Noema Adapter: YahooAdapter
+-- | Gateway.Yahoo
 -- |
 -- | Yahoo!ショッピング API との連携アダプター。
 -- |
 -- | 認証: OAuth2（リフレッシュトークンでアクセストークン取得）
 -- | API: https://circus.shopping.yahooapis.jp/ShoppingWebService/V1/
-module Noema.Presheaf.YahooAdapter
+module Gateway.Yahoo
   ( YahooAdapter
   , YahooConfig
   , TokenCache
@@ -27,10 +27,8 @@ import Effect.Ref as Ref
 import Effect.Class (liftEffect)
 import Foreign.Object as Object
 import Noema.Core.Locus (ThingId(..), Quantity(..))
-import Noema.Presheaf.ChannelAdapter
-  ( AdapterError(..)
-  , StockInfo
-  )
+import Gateway.InventoryAdapter (StockInfo)
+import Platform.Cloudflare.Gateway.Adapter (AdapterError(..))
 import Platform.Cloudflare.FFI.Fetch (fetchWithInit)
 import Platform.Cloudflare.FFI.Response (status, ok, text)
 

@@ -46,7 +46,7 @@ import Noema.Core.Locus
   , unwrapSubjectId
   , unwrapQuantity
   )
-import Noema.Presheaf.Channel (Channel(..))
+import Gateway.Channel (Channel(..))
 import Noema.Vorzeichnung.Vocabulary.InventoryF
   ( InventoryF(..)
   , InventoryIntent
