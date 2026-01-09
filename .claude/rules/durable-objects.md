@@ -7,6 +7,8 @@ Noema DSL を Cloudflare Durable Objects 上に実装する際のパターン集
 | Noema概念 | Durable Objects実装 |
 |-----------|---------------------|
 | **Intent** | `sql.exec()` へのクエリ列 |
+| **Interpretation** | 自然変換 f ~> Factum |
+| **Factum** | 流動的事実（Effect ラッパー） |
 | **Attractor** | Durable Object class instance |
 | **World** | DO namespace + ID |
 | **Nomos** | スキーマ + 制約 |
@@ -99,7 +101,7 @@ await this.ctx.storage.put("cryostasis", {
 
 1. 操作の列（sequence）として設計（分岐なし）
 2. Arrow制約を意識：出力に基づく条件分岐で後続エフェクトを選択しない
-3. Handler で解釈を与える
+3. Interpretation で解釈を与え、Factum に崩落させる
 
 ### 2. Attractor（DO）実装時
 

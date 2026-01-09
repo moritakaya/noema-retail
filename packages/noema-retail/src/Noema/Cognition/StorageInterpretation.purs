@@ -1,21 +1,24 @@
--- | Noema Handler: StorageHandler（Arrow版）
+-- | Noema Cognition: StorageInterpretation
 -- |
--- | StorageF を SQLite Storage へ解釈する Handler。
+-- | StorageF（ストレージ操作語彙）を Factum（事実）へ解釈する。
 -- |
--- | ## Arrow 移行での変更点
+-- | ## 技術的語彙からの移行
 -- |
--- | - `foldIntent` → `runIntent`
--- | - Handler の型は変わらない（f ~> m）
--- | - Intent の実行時に入力値を渡す必要がある
+-- | 旧名称「StorageHandler」から「StorageInterpretation」へ変更。
+-- |
+-- | 理由:
+-- | 1. 技術は進歩し変化するが、哲学・意味論は安定している
+-- | 2. Noema の語彙体系と整合（Interpretation = 解釈）
+-- | 3. 「意味→意味」の直接的対話を実現
 -- |
 -- | ## 圏論的解釈
 -- |
--- | Handler は A-algebra homomorphism として機能する。
+-- | Interpretation は A-algebra homomorphism として機能する。
 -- | StorageF の操作を具体的な SQLite 呼び出しに変換し、
--- | 結果を Effect に持ち上げる。
+-- | 結果を Factum に持ち上げる。
 -- |
 -- | > 実行とは忘却である。
-module Noema.Cognition.StorageHandler
+module Noema.Cognition.StorageInterpretation
   ( runStorageIntent
   , StorageEnv
   , SqlStorage
@@ -26,12 +29,11 @@ module Noema.Cognition.StorageHandler
 import Prelude
 
 import Data.Maybe (Maybe)
-import Effect (Effect)
 import Foreign (Foreign)
 
 import Noema.Vorzeichnung.Vocabulary.StorageF (StorageF(..), StorageIntent)
-import Noema.Vorzeichnung.Intent (runIntent)
-import Noema.Cognition.Handler (Handler)
+import Noema.Cognition.Interpretation (Interpretation, runInterpretation)
+import Noema.Sedimentation.Factum (Factum)
 
 -- ============================================================
 -- 環境
@@ -39,7 +41,7 @@ import Noema.Cognition.Handler (Handler)
 
 -- | Storage 環境
 -- |
--- | Handler の実行に必要な依存関係を保持する。
+-- | Interpretation の実行に必要な依存関係を保持する。
 type StorageEnv =
   { sql :: SqlStorage
   }
@@ -52,16 +54,16 @@ mkStorageEnv sql = { sql }
 foreign import data SqlStorage :: Type
 
 -- ============================================================
--- Handler 実装
+-- Interpretation 実装
 -- ============================================================
 
--- | StorageF を Effect に解釈する Handler
+-- | StorageF を Factum に解釈する Interpretation
 -- |
 -- | 圏論的解釈:
--- | この関数は自然変換 StorageF ~> Effect を定義する。
+-- | この関数は自然変換 StorageF ~> Factum を定義する。
 -- | A-algebra homomorphism として、操作の構造を保存しながら
 -- | 具体的な SQLite 実装へ変換する。
-interpretStorageF :: StorageEnv -> Handler StorageF Effect
+interpretStorageF :: StorageEnv -> Interpretation StorageF
 interpretStorageF env = case _ of
   ExecSql sql next -> do
     let _ = exec env.sql sql
@@ -107,17 +109,23 @@ interpretStorageF env = case _ of
 -- Intent 実行
 -- ============================================================
 
--- | StorageIntent を Effect で実行する
+-- | StorageIntent を Factum で実行する
 -- |
 -- | Arrow 版では入力値を明示的に渡す必要がある。
 -- |
+-- | 使用例:
 -- | ```purescript
--- | -- 使用例
 -- | result <- runStorageIntent env (querySql "SELECT * FROM users") unit
+-- | -- result :: Factum (Array Foreign)
+-- |
+-- | -- エントリーポイントで Factum → Effect に変換
+-- | handleRequest req = collapse do
+-- |   result <- runStorageIntent env intent unit
+-- |   ...
 -- | ```
-runStorageIntent :: forall a b. StorageEnv -> StorageIntent a b -> a -> Effect b
-runStorageIntent env intent input = 
-  runIntent (interpretStorageF env) intent input
+runStorageIntent :: forall a b. StorageEnv -> StorageIntent a b -> a -> Factum b
+runStorageIntent env intent input =
+  runInterpretation (interpretStorageF env) intent input
 
 -- ============================================================
 -- FFI 関数

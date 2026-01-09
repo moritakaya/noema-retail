@@ -1,22 +1,39 @@
--- | Noema Handler: InventoryHandler（Arrow版）
+-- | Noema Cognition: InventoryInterpretation
 -- |
--- | InventoryF を SQLite Storage へ解釈する Handler。
+-- | InventoryF（在庫操作語彙）を Factum（事実）へ解釈する。
 -- |
--- | ## Arrow 移行での変更点
+-- | ## 技術的語彙からの移行
 -- |
--- | - `foldIntent` → `runIntent`
--- | - Handler の型は変わらない（f ~> m）
--- | - Intent の実行時に入力値を渡す必要がある
+-- | 旧名称「InventoryHandler」から「InventoryInterpretation」へ変更。
+-- |
+-- | 理由:
+-- | 1. 技術は進歩し変化するが、哲学・意味論は安定している
+-- | 2. Noema の語彙体系と整合（Interpretation = 解釈）
+-- | 3. 「意味→意味」の直接的対話を実現
+-- |
+-- | ## 役割
+-- |
+-- | - GetStock, SetStock 等の在庫操作を SQLite 操作に変換
+-- | - FFI 境界で Effect を Factum に認識（recognize）
+-- | - 分岐ロジック（在庫不足時のエラー等）を処理
 -- |
 -- | ## 圏論的解釈
 -- |
--- | Handler は A-algebra homomorphism として機能:
+-- | Interpretation は A-algebra homomorphism として機能:
 -- | - InventoryF は在庫操作の Functor
--- | - Handler は Intent（意志構造）を忘却し、
+-- | - Interpretation は Intent（意志構造）を忘却し、
 -- |   SQLite の状態変更という事実へ崩落させる
 -- |
 -- | > 実行とは忘却である。
-module Noema.Cognition.InventoryHandler
+-- |
+-- | ## 使用例
+-- |
+-- | ```purescript
+-- | env <- recognize $ mkInventoryEnv sql
+-- | result <- runInventoryIntent env someIntent unit
+-- | -- result :: Factum SomeResult
+-- | ```
+module Noema.Cognition.InventoryInterpretation
   ( runInventoryIntent
   , InventoryEnv
   , Cursor
@@ -28,40 +45,36 @@ module Noema.Cognition.InventoryHandler
 
 import Prelude
 
-import Data.Array (head)
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Effect (Effect)
 import Foreign (Foreign, unsafeToForeign, unsafeFromForeign)
 
 import Noema.Topos.Situs
-  ( Timestamp(..)
-  , mkTimestamp
-  , currentTimestamp
+  ( currentTimestamp
   , ThingId(..)
-  , SubjectId(..)
+  , SubjectId
   , Quantity(..)
   , QuantityDelta(..)
   , mkSubjectId
   , unwrapSubjectId
   , unwrapQuantity
   )
-import Noema.Horizont.Channel (Channel(..))
 import Noema.Vorzeichnung.Vocabulary.InventoryF
   ( InventoryF(..)
   , InventoryIntent
   , StockInfo
   , SyncResult(..)
   )
-import Noema.Vorzeichnung.Intent (runIntent)
-import Noema.Cognition.Handler (Handler, runHandler)
+import Noema.Cognition.Interpretation (Interpretation, runInterpretation)
+import Noema.Sedimentation.Factum (Factum, recognize)
 import Platform.Cloudflare.FFI.SqlStorage (SqlStorage)
 
 -- ============================================================
 -- 環境
 -- ============================================================
 
--- | Inventory Handler 環境
+-- | Inventory Interpretation 環境
 -- |
 -- | SQLite Storage への参照を保持する。
 type InventoryEnv =
@@ -86,6 +99,7 @@ maxQuantity = 1000
 -- | スキーマを初期化
 -- |
 -- | Durable Object の初回アクセス時に呼び出す。
+-- | FFI 境界のため Effect を返す（recognize で Factum に変換可能）。
 initializeSchema :: SqlStorage -> Effect Unit
 initializeSchema sql = do
   -- 在庫テーブル
@@ -133,20 +147,22 @@ initializeSchema sql = do
   -- インデックス
   let _ = exec sql "CREATE INDEX IF NOT EXISTS idx_inventory_thing ON inventory(thing_id)"
   let _ = exec sql "CREATE INDEX IF NOT EXISTS idx_inventory_log_created ON inventory_log(created_at)"
-  
+
   pure unit
 
 -- ============================================================
--- Handler 実装
+-- Interpretation 実装
 -- ============================================================
 
--- | InventoryF を Effect に解釈する Handler
+-- | InventoryF を Factum に解釈する Interpretation
 -- |
 -- | 圏論的解釈:
--- | この関数は自然変換 InventoryF ~> Effect を定義する。
+-- | この関数は自然変換 InventoryF ~> Factum を定義する。
 -- | A-algebra homomorphism として、操作の構造を保存しながら
 -- | 具体的な SQLite 実装へ変換する。
-interpretInventoryF :: InventoryEnv -> Handler InventoryF Effect
+-- |
+-- | FFI 境界での Effect は recognize で Factum に変換。
+interpretInventoryF :: InventoryEnv -> Interpretation InventoryF
 interpretInventoryF env = case _ of
   GetStock (ThingId tid) sid k -> do
     let sidStr = unwrapSubjectId sid
@@ -162,7 +178,7 @@ interpretInventoryF env = case _ of
     pure (k info)
 
   SetStock (ThingId tid) sid qty next -> do
-    now <- currentTimestamp
+    now <- recognize currentTimestamp
     let sidStr = unwrapSubjectId sid
     let inventoryId = mkInventoryId tid sidStr
     let _ = execWithParams env.sql
@@ -182,7 +198,7 @@ interpretInventoryF env = case _ of
     pure next
 
   AdjustStock (ThingId tid) sid delta k -> do
-    now <- currentTimestamp
+    now <- recognize currentTimestamp
     let sidStr = unwrapSubjectId sid
     let inventoryId = mkInventoryId tid sidStr
 
@@ -207,7 +223,7 @@ interpretInventoryF env = case _ of
     pure (k newQty)
 
   ReserveStock (ThingId tid) sid qty k -> do
-    now <- currentTimestamp
+    now <- recognize currentTimestamp
     let sidStr = unwrapSubjectId sid
     let inventoryId = mkInventoryId tid sidStr
 
@@ -241,7 +257,7 @@ interpretInventoryF env = case _ of
             pure (k true)
 
   ReleaseReservation (ThingId tid) sid _reservationId next -> do
-    now <- currentTimestamp
+    now <- recognize currentTimestamp
     let sidStr = unwrapSubjectId sid
     let inventoryId = mkInventoryId tid sidStr
 
@@ -287,17 +303,23 @@ interpretInventoryF env = case _ of
 -- Intent 実行
 -- ============================================================
 
--- | InventoryIntent を Effect で実行
+-- | InventoryIntent を Factum で実行
 -- |
 -- | Arrow 版では入力値を明示的に渡す必要がある。
 -- |
+-- | 使用例:
 -- | ```purescript
--- | -- 使用例
--- | result <- runInventoryIntent env (getStock tid lid) unit
+-- | result <- runInventoryIntent env (getStock tid sid) unit
+-- | -- result :: Factum StockInfo
+-- |
+-- | -- エントリーポイントで Factum → Effect に変換
+-- | handleFetch req = collapse do
+-- |   result <- runInventoryIntent env intent unit
+-- |   ...
 -- | ```
-runInventoryIntent :: forall a b. InventoryEnv -> InventoryIntent a b -> a -> Effect b
-runInventoryIntent env intent input = 
-  runIntent (interpretInventoryF env) intent input
+runInventoryIntent :: forall a b. InventoryEnv -> InventoryIntent a b -> a -> Factum b
+runInventoryIntent env intent input =
+  runInterpretation (interpretInventoryF env) intent input
 
 -- ============================================================
 -- ヘルパー関数

@@ -15,18 +15,23 @@
 │                      随伴 F ⊣ U                                 │
 │                                                                 │
 │  Vorzeichnung/          ⊣         Cognition/                   │
-│  ├── FreerArrow.purs              ├── Handler.purs              │
-│  └── Vocabulary/                  └── InventoryHandler.purs     │
+│  ├── FreerArrow.purs              └── Interpretation.purs       │
+│  └── Vocabulary/                                                │
 │      └── InventoryF                                             │
 │           │                              │                      │
 │           ▼ Arrow Effects               ▼ U (忘却)              │
-│       Intent ────────────────────────▶ Effect                   │
+│       Intent ────────────────────────▶ Factum                   │
 │      (意志の構造)                       (事実)                   │
 │                                          │                      │
 │                                          ▼                      │
 │                                 Sedimentation/                  │
-│                                 └── Attractor                   │
-│                                     (沈殿)                       │
+│                                 ├── Factum    (流動的事実)      │
+│                                 ├── Attractor (沈殿の場)        │
+│                                 └── Seal      (確定した事実)    │
+│                                          │                      │
+│                                          ▼ collapse (忘却)      │
+│                                       Effect                    │
+│                                     (外界への崩落)               │
 │                                          │                      │
 │                                          ▼                      │
 │                                 Horizont/                       │
@@ -34,6 +39,28 @@
 │                                 (外界との地平線)                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+### Sedimentation 層の構造
+
+```
+Sedimentation/（沈殿）
+├── Factum.purs      -- 解釈の結果（まだ流動的な事実）
+├── Attractor.purs   -- 沈殿の場（Durable Object）
+└── Seal.purs        -- 沈殿の証明（確定した事実）
+
+流れ:
+  Factum（液体）→ Attractor（沈殿過程）→ Seal（固体）→ collapse → Effect
+```
+
+### 技術的語彙から哲学的語彙への移行
+
+| 旧名称 | 新名称 | 理由 |
+|--------|--------|------|
+| Handler | **Interpretation** | 現象学の「解釈」(Auslegung) |
+| Effect | **Factum** | ラテン語「為されたこと」= 事実 |
+
+**動機**: 技術は進歩し変化する（Algebraic Effects 等）が、哲学・意味論は安定している。
+Noema の語彙体系（Topos, Horizont, Vorzeichnung, Cognition, Sedimentation）と整合させた。
 
 ## モノレポ構成
 
@@ -49,18 +76,19 @@
 ```
 noema-core (DSL)              noema-retail (実装)
 ├── Arrow 型クラス            ├── InventoryF（ドメイン語彙）
-├── Intent / Handler          ├── HttpF / StorageF（インフラ）
-├── AVDC 語彙                 ├── Handlers（具体実装）
-│   ├── SubjectF              ├── Horizont/（チャネル実装）
-│   ├── ThingF                │   ├── Channel, InventoryCarrier
-│   ├── RelationF             │   └── Rakuten, Smaregi, Yahoo, Stripe
-│   ├── ContractF             ├── InventoryAttractor（Retail固有DO）
-│   └── NoemaF                └── TlaPlus/
+├── Intent / Interpretation   ├── HttpF / StorageF（インフラ）
+├── AVDC 語彙                 ├── Interpretations（具体実装）
+│   ├── SubjectF              │   ├── InventoryInterpretation
+│   ├── ThingF                │   └── StorageInterpretation
+│   ├── RelationF             ├── Horizont/（チャネル実装）
+│   ├── ContractF             │   ├── Channel, InventoryCarrier
+│   └── NoemaF                │   └── Rakuten, Smaregi, Yahoo, Stripe
 ├── Topos/Situs, Nomos, Presheaf
 ├── Horizont/Carrier  # 外的地平線（担体）
-├── Sedimentation/Attractor, Seal
+├── Sedimentation/Factum, Attractor, Seal
 └── Platform/Cloudflare/
     ├── FFI, Router  # 汎用インフラ
+    └── InventoryAttractor（Retail固有DO）  # noema-retail
 ```
 
 **依存方向**: `noema-retail` → `noema-core`（逆方向は禁止）
@@ -90,10 +118,11 @@ packages/
 │   │   │   │       ├── ContractF.purs
 │   │   │   │       └── NoemaF.purs
 │   │   │   ├── Cognition/
-│   │   │   │   └── Handler.purs   # Handler 基底型
+│   │   │   │   └── Interpretation.purs   # 解釈（f ~> Factum）
 │   │   │   └── Sedimentation/
-│   │   │       ├── Attractor.purs
-│   │   │       └── Seal.purs
+│   │   │       ├── Factum.purs    # 流動的事実（newtype Factum a = Factum (Effect a)）
+│   │   │       ├── Attractor.purs # 沈殿の場（DO）
+│   │   │       └── Seal.purs      # 確定した事実
 │   │   └── Platform/Cloudflare/   # 汎用 Cloudflare インフラ
 │   │       ├── Router.purs        # HTTP ルーター
 │   │       └── FFI/               # Workers API バインディング
@@ -114,8 +143,8 @@ packages/
     │   │   │   ├── HttpF.purs
     │   │   │   └── StorageF.purs
     │   │   └── Cognition/
-    │   │       ├── InventoryHandler.purs
-    │   │       └── StorageHandler.purs
+    │   │       ├── InventoryInterpretation.purs  # 在庫操作の解釈
+    │   │       └── StorageInterpretation.purs    # ストレージ操作の解釈
     │   ├── Horizont/                  # 外部チャネル Carrier 実装
     │   │   ├── Channel.purs           # Channel 基底圏の対象
     │   │   ├── InventoryCarrier.purs  # 在庫用 Carrier 型クラス
@@ -138,9 +167,10 @@ packages/
 | 層 | 技術 | 圏論的役割 |
 |---|---|---|
 | **DSL** | PureScript | Arrow Effects（Vorzeichnung） |
-| **Handler** | PureScript | A-algebra（Cognition） |
-| **Runtime** | TypeScript/JS | 台（carrier） |
-| **State** | Durable Objects + SQLite | Sedimentation |
+| **Interpretation** | PureScript | A-algebra homomorphism（Cognition） |
+| **Factum** | PureScript | 流動的事実（Sedimentation） |
+| **Runtime** | TypeScript/JS | 台（carrier）→ Effect |
+| **State** | Durable Objects + SQLite | Sedimentation（Attractor） |
 | **Horizont** | Hono | 外界との地平線（Carrier） |
 | **Verification** | TLA+ | 形式的モデル検証 |
 
@@ -244,7 +274,9 @@ Noema は既存の設計手法（DDD, Clean Architecture 等）に依存しな�
 | Noema用語 | 意味 | DDD等価物（参考のみ） |
 |-----------|------|----------------------|
 | Intent | 意図の静的構造 | Command/Query |
-| Cognition | 意図の解釈・実行 | Handler |
+| Cognition | 意図の解釈の場 | - |
+| **Interpretation** | Intent の解釈（f ~> Factum） | Handler |
+| **Factum** | 流動的事実（事実として認識されたもの） | Effect の哲学的対応物 |
 | Vorzeichnung | 前描画スキーマ | - |
 | Vocabulary | ドメイン語彙 | Domain Model |
 | Arrow Effects | 分岐禁止の効果系 | Effect System |
@@ -252,6 +284,8 @@ Noema は既存の設計手法（DDD, Clean Architecture 等）に依存しな�
 | Horizont | 外界との地平線 | Gateway |
 | Carrier | 外部接続の担体（noema-core） | Adapter |
 | InventoryCarrier | 在庫用 Carrier（noema-retail） | Inventory Adapter |
+| **collapse** | Factum → Effect（忘却） | unsafePerformEffect |
+| **recognize** | Effect → Factum（認識） | liftEffect |
 
 ### 設計書更新のトリガー
 
@@ -349,6 +383,7 @@ Termination（解除）: B は A を解除
 ## 実装規則
 
 1. **Sediment のみ**: UPDATE 禁止、INSERT のみ
-2. **Arrow 維持**: ArrowChoice 禁止、分岐は Handler で
+2. **Arrow 維持**: ArrowChoice 禁止、分岐は Interpretation で
 3. **Source of Truth**: 所有権等は Thing を包摂する Subject が保持
 4. **View**: Container の Contents はキャッシュ
+5. **FFI 境界**: Effect は recognize で Factum に、エントリーポイントで collapse

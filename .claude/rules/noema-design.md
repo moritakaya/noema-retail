@@ -19,6 +19,8 @@
 | Noema概念 | Durable Objects実装 |
 |-----------|---------------------|
 | Intent | `sql.exec()` へのクエリ列 |
+| **Interpretation** | 自然変換 f ~> Factum |
+| **Factum** | 流動的事実（Effect ラッパー） |
 | Attractor | Durable Object class instance |
 | World | DO namespace + ID |
 | Seal | トランザクション結果 |
@@ -32,20 +34,37 @@ Intent 設計時の重要制約：
 
 1. **操作の列（sequence）として設計**：分岐なし
 2. **出力に基づく条件分岐で後続エフェクトを選択しない**
-3. Handler は A-algebra homomorphism として実装
+3. Interpretation は A-algebra homomorphism として実装
+4. **FFI 境界**: `recognize` で Effect → Factum、`collapse` で Factum → Effect
 
 ```purescript
 -- ✓ 正しい: 線形な操作列
 do
   x <- perceive key1
   germinate key2 (transform x)
-  
+
 -- ✗ 誤り: 出力に基づく分岐
 do
   x <- perceive key1
   if condition x
     then germinate key2 value1
     else germinate key3 value2
+```
+
+## Factum と Effect の境界
+
+```purescript
+-- Factum: 内部の事実
+newtype Factum a = Factum (Effect a)
+
+-- collapse: 外界への忘却
+handleFetch :: Request -> Effect Response
+handleFetch req = collapse do
+  result <- runInventoryIntent env intent unit
+  recognize $ jsonResponse result
+
+-- recognize: 外界からの認識
+now <- recognize currentTimestamp
 ```
 
 ## コード生成パターン
