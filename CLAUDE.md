@@ -56,7 +56,7 @@ noema-core (DSL)              noema-retail (実装)
 │   ├── RelationF             │   └── Rakuten, Smaregi, Yahoo, Stripe
 │   ├── ContractF             ├── InventoryAttractor（Retail固有DO）
 │   └── NoemaF                └── TlaPlus/
-├── Core/Locus, World
+├── Topos/Situs, Nomos, Presheaf
 ├── Sedimentation/Attractor, Seal
 └── Platform/Cloudflare/
     ├── FFI, Router  # 汎用インフラ
@@ -73,9 +73,10 @@ packages/
 │   ├── src/
 │   │   ├── Control/Arrow.purs     # Arrow 型クラス
 │   │   ├── Noema/
-│   │   │   ├── Core/              # 基本型
-│   │   │   │   ├── Locus.purs     # 空間座標
-│   │   │   │   └── World.purs     # 法座標
+│   │   │   ├── Topos/             # トポス構造の基盤
+│   │   │   │   ├── Situs.purs     # 空間座標（Site の点）
+│   │   │   │   ├── Nomos.purs     # 法座標（被覆構造）
+│   │   │   │   └── Presheaf.purs  # ステージング（前層）
 │   │   │   ├── Vorzeichnung/      # 予描図式（左随伴）
 │   │   │   │   ├── Intent.purs    # Arrow-based Intent
 │   │   │   │   ├── FreerArrow.purs
@@ -278,14 +279,16 @@ Subject（主体）: 意志を持つ → DO として実装
 Thing（物）: 意志を持たない → Subject に包摂される
 ```
 
-### グロタンディーク構成
+### グロタンディーク構成（Topos）
 
 ```
-Locus = 空間座標（DO の ID）
-World = 法座標（Nomos のバージョン）
+Situs = 空間座標（Site の点、DO の ID）
+Nomos = 法座標（被覆構造、合法性の規定）
+Presheaf = 前層（ステージング環境）
 
 Base 圏: DO のネットワーク（水平射 = RPC）
 Fiber 圏: DO 内の状態空間（垂直射 = Sediment）
+Presheaf → Sheaf: 層化関手（Sedimentation）
 ```
 
 ### Thing = Subject の包摂

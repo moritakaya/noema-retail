@@ -1,11 +1,12 @@
--- | Noema Core: Locus（空間座標）
+-- | Noema Topos: Situs（空間座標）
 -- |
--- | DO の識別子と基本型を定義する。
+-- | Site の点（DO の識別子）と基本型を定義する。
 -- |
 -- | ## 圏論的位置づけ
 -- |
--- | Locus は Base 圏の対象を識別する。
--- | DO が眠って起きた時、Locus は同じだが World が変わりうる。
+-- | Situs は Site C の対象を識別する空間座標。
+-- | グロタンディーク・トポスにおける「点」に対応。
+-- | DO が眠って起きた時、Situs は同じだが Nomos が変わりうる。
 -- |
 -- | ## 存在論的構造
 -- |
@@ -14,7 +15,7 @@
 -- | - Contract: 契約（DO として実装）
 -- |
 -- | 注: LocationId は廃止。Subject が Thing を包摂し、その位置を決定する。
-module Noema.Core.Locus
+module Noema.Topos.Situs
   ( -- * Locus（空間座標）
     LocusId(..)
   , mkLocusId

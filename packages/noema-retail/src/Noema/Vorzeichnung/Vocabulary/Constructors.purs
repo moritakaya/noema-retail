@@ -67,7 +67,7 @@ import Prelude
 import Data.Maybe (Maybe)
 import Noema.Vorzeichnung.Intent (Intent, liftEffect)
 import Noema.Vorzeichnung.Vocabulary.NoemaF (NoemaF, inSubject, inThing, inRelation, inContract)
-import Noema.Core.Locus
+import Noema.Topos.Situs
   ( SubjectId, ThingId, ContractId, RelationId, SedimentId, Timestamp )
 
 import Noema.Vorzeichnung.Vocabulary.SubjectF as S

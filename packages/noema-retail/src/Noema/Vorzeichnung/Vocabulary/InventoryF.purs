@@ -34,8 +34,8 @@
 module Noema.Vorzeichnung.Vocabulary.InventoryF
   ( InventoryF(..)
   , InventoryIntent
-  -- Types (re-exported from Core/Locus)
-  , module Noema.Core.Locus
+  -- Types (re-exported from Topos/Situs)
+  , module Noema.Topos.Situs
   -- Types (re-exported from Gateway)
   , module Gateway.Channel
   , module Gateway.InventoryAdapter
@@ -54,7 +54,7 @@ module Noema.Vorzeichnung.Vocabulary.InventoryF
 import Prelude
 
 import Noema.Vorzeichnung.Intent (Intent, liftEffect)
-import Noema.Core.Locus (ThingId(..), SubjectId(..), Quantity(..), QuantityDelta(..), mkThingId, mkSubjectId, unwrapThingId, unwrapSubjectId, mkQuantity, unwrapQuantity, mkQuantityDelta, unwrapQuantityDelta)
+import Noema.Topos.Situs (ThingId(..), SubjectId(..), Quantity(..), QuantityDelta(..), mkThingId, mkSubjectId, unwrapThingId, unwrapSubjectId, mkQuantity, unwrapQuantity, mkQuantityDelta, unwrapQuantityDelta)
 import Gateway.Channel (Channel(..))
 import Gateway.InventoryAdapter (SyncResult(..))
 

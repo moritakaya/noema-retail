@@ -29,9 +29,9 @@ module Noema.Vorzeichnung.Vocabulary.ContractF
 import Prelude
 import Data.Maybe (Maybe)
 import Data.Argonaut.Core (Json)
-import Noema.Core.Locus
+import Noema.Topos.Situs
   ( ThingId, SubjectId, ContractId, SedimentId, Timestamp )
-import Noema.Core.World (NomosReference)
+import Noema.Topos.Nomos (NomosReference)
 
 -- | 契約の状態
 data ContractStatus

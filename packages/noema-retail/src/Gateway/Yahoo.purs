@@ -26,7 +26,7 @@ import Effect.Ref (Ref)
 import Effect.Ref as Ref
 import Effect.Class (liftEffect)
 import Foreign.Object as Object
-import Noema.Core.Locus (ThingId(..), Quantity(..))
+import Noema.Topos.Situs (ThingId(..), Quantity(..))
 import Gateway.InventoryAdapter (StockInfo)
 import Platform.Cloudflare.Gateway.Adapter (AdapterError(..))
 import Platform.Cloudflare.FFI.Fetch (fetchWithInit)

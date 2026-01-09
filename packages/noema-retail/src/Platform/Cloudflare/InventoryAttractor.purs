@@ -23,7 +23,7 @@ import Prelude
 import Data.Newtype (unwrap)
 import Effect (Effect)
 import Foreign (Foreign, unsafeToForeign)
-import Noema.Core.Locus
+import Noema.Topos.Situs
   ( ThingId(..)
   , SubjectId(..)
   , Quantity(..)

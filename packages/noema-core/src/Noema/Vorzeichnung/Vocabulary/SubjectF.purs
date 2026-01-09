@@ -19,8 +19,8 @@ module Noema.Vorzeichnung.Vocabulary.SubjectF
 import Prelude
 import Data.Maybe (Maybe)
 import Data.Argonaut.Core (Json)
-import Noema.Core.Locus (SubjectId, SedimentId, Timestamp)
-import Noema.Core.World (World, IntentContext)
+import Noema.Topos.Situs (SubjectId, SedimentId, Timestamp)
+import Noema.Topos.Nomos (World, IntentContext)
 
 -- | Subject の種別
 data SubjectKind

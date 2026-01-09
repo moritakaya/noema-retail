@@ -26,7 +26,7 @@ import Prelude
 import Data.Either (Either)
 import Data.Maybe (Maybe)
 import Effect.Aff (Aff)
-import Noema.Core.Locus (ThingId, Quantity, Timestamp)
+import Noema.Topos.Situs (ThingId, Quantity, Timestamp)
 import Gateway.Channel (Channel)
 import Platform.Cloudflare.Gateway.Adapter (class GatewayAdapter, AdapterError)
 

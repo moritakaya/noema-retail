@@ -21,7 +21,7 @@ import Data.String (split, Pattern(..))
 import Data.Tuple.Nested ((/\))
 import Effect.Aff (Aff)
 import Foreign.Object as Object
-import Noema.Core.Locus (ThingId(..), Quantity(..))
+import Noema.Topos.Situs (ThingId(..), Quantity(..))
 import Gateway.Channel (Channel(..))
 import Gateway.InventoryAdapter (class InventoryAdapter, SyncResult(..), getStock, setStock)
 import Platform.Cloudflare.Gateway.Adapter (class GatewayAdapter, AdapterError(..))

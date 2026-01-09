@@ -24,18 +24,20 @@ Noema DSL の Vocabulary を再設計した。イミュータブルデータモ�
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-### 2. グロタンディーク構成
+### 2. グロタンディーク構成（Topos）
 
 ```
-Locus  = 空間座標（DO の ID）
-World  = 法座標（Nomos のバージョン + 文脈）
+Situs    = 空間座標（Site の点、DO の ID）
+Nomos    = 法座標（被覆構造、合法性の規定）
+Presheaf = 前層（ステージング環境）
 
 Base 圏: DO のネットワーク（水平射 = RPC）
 Fiber 圏: 各 DO 内の状態空間（垂直射 = Sediment）
+Presheaf → Sheaf: 層化関手（Sedimentation）
 
 DO が眠って起きた時:
-  - Locus は同じ
-  - World が変わりうる（コードのデプロイ）
+  - Situs は同じ
+  - Nomos が変わりうる（コードのデプロイ）
 ```
 
 ### 3. Thing = Subject の包摂
@@ -66,10 +68,10 @@ type NoemaF = Coproduct4 SubjectF ThingF RelationF ContractF
 
 ### タスク1: 基本型の定義
 
-**ファイル**: `src/Noema/Core/Locus.purs`
+**ファイル**: `src/Noema/Topos/Situs.purs`
 
 ```purescript
-module Noema.Core.Locus where
+module Noema.Topos.Situs where
 
 import Prelude
 import Data.Maybe (Maybe)
@@ -95,14 +97,14 @@ newtype Timestamp = Timestamp Number
 newtype Quantity = Quantity Int
 ```
 
-**ファイル**: `src/Noema/Core/World.purs`
+**ファイル**: `src/Noema/Topos/Nomos.purs`
 
 ```purescript
-module Noema.Core.World where
+module Noema.Topos.Nomos where
 
 import Prelude
 import Data.Maybe (Maybe)
-import Noema.Core.Locus (Timestamp)
+import Noema.Topos.Situs (Timestamp)
 
 -- | Nomos のバージョン
 newtype NomosVersion = NomosVersion String
@@ -133,8 +135,8 @@ module Noema.Vorzeichnung.Vocabulary.SubjectF where
 import Prelude
 import Data.Maybe (Maybe)
 import Data.Argonaut.Core (Json)
-import Noema.Core.Locus (SubjectId, SedimentId, Timestamp)
-import Noema.Core.World (World, IntentContext)
+import Noema.Topos.Situs (SubjectId, SedimentId, Timestamp)
+import Noema.Topos.Nomos (World, IntentContext)
 
 -- | Subject の種別
 data SubjectKind
@@ -207,7 +209,7 @@ import Prelude
 import Data.Maybe (Maybe)
 import Data.Map (Map)
 import Data.Argonaut.Core (Json)
-import Noema.Core.Locus (ThingId, SubjectId, SedimentId, Timestamp, ContractId)
+import Noema.Topos.Situs (ThingId, SubjectId, SedimentId, Timestamp, ContractId)
 
 -- | Property のキーと値
 newtype PropertyKey = PropertyKey String
@@ -311,7 +313,7 @@ import Prelude
 import Data.Maybe (Maybe)
 import Data.Argonaut.Core (Json)
 import Data.Rational (Rational)
-import Noema.Core.Locus 
+import Noema.Topos.Situs 
   ( ThingId, SubjectId, RelationId, SedimentId
   , Timestamp, ContractId, Quantity
   )
@@ -486,9 +488,9 @@ module Noema.Vorzeichnung.Vocabulary.ContractF where
 import Prelude
 import Data.Maybe (Maybe)
 import Data.Argonaut.Core (Json)
-import Noema.Core.Locus 
+import Noema.Topos.Situs 
   ( ThingId, SubjectId, ContractId, SedimentId, Timestamp )
-import Noema.Core.World (NomosReference)
+import Noema.Topos.Nomos (NomosReference)
 
 -- | 契約の状態
 data ContractStatus

@@ -34,7 +34,7 @@ import Data.Newtype (unwrap)
 import Effect (Effect)
 import Foreign (Foreign, unsafeToForeign, unsafeFromForeign)
 
-import Noema.Core.Locus
+import Noema.Topos.Situs
   ( Timestamp(..)
   , mkTimestamp
   , currentTimestamp

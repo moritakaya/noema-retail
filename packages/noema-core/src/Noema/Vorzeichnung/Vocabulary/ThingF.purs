@@ -31,7 +31,7 @@ import Prelude
 import Data.Maybe (Maybe)
 import Data.Map (Map)
 import Data.Argonaut.Core (Json)
-import Noema.Core.Locus (ThingId, SubjectId, SedimentId, Timestamp, ContractId)
+import Noema.Topos.Situs (ThingId, SubjectId, SedimentId, Timestamp, ContractId)
 
 -- | Property のキー
 newtype PropertyKey = PropertyKey String

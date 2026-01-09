@@ -58,7 +58,7 @@ packages/
 │   ├── src/
 │   │   ├── Control/Arrow.purs     # Arrow 型クラス
 │   │   ├── Noema/
-│   │   │   ├── Core/              # 基本型（Locus, World）
+│   │   │   ├── Topos/             # トポス構造（Situs, Nomos, Presheaf）
 │   │   │   ├── Vorzeichnung/      # 予描図式（Intent, Combinators）
 │   │   │   │   └── Vocabulary/    # AVDC 語彙
 │   │   │   │       ├── SubjectF.purs
@@ -67,8 +67,7 @@ packages/
 │   │   │   │       ├── ContractF.purs
 │   │   │   │       └── NoemaF.purs
 │   │   │   ├── Cognition/Handler.purs
-│   │   │   ├── Sedimentation/     # Attractor, Seal
-│   │   │   └── Presheaf/          # Channel, ChannelAdapter
+│   │   │   └── Sedimentation/     # Attractor, Seal
 │   │   └── Platform/Cloudflare/   # 汎用 Workers インフラ
 │   │       ├── Router.purs
 │   │       └── FFI/               # DurableObject, Request, Response, etc.
@@ -85,7 +84,7 @@ packages/
     │   │   ├── Cognition/
     │   │   │   ├── InventoryHandler.purs
     │   │   │   └── StorageHandler.purs
-    │   │   └── Presheaf/          # Rakuten, Smaregi, Yahoo, Stripe
+    │   │   └── Gateway/           # Rakuten, Smaregi, Yahoo, Stripe
     │   ├── TlaPlus/               # TLA+ 連携
     │   └── Platform/Cloudflare/
     │       └── InventoryAttractor.purs  # Retail 固有の DO

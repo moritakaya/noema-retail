@@ -31,7 +31,7 @@ module Noema.Vorzeichnung.Vocabulary.RelationF
 import Prelude
 import Data.Maybe (Maybe)
 import Data.Argonaut.Core (Json)
-import Noema.Core.Locus
+import Noema.Topos.Situs
   ( ThingId, SubjectId, RelationId, SedimentId
   , Timestamp, ContractId, Quantity
   )

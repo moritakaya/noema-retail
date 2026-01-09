@@ -1,13 +1,18 @@
--- | Noema Core: World（法座標）
+-- | Noema Topos: Nomos（法座標）
 -- |
--- | Nomos のバージョンと適用文脈を定義する。
+-- | 被覆構造（Grothendieck topology）としての法の規定。
 -- |
 -- | ## 圏論的位置づけ
 -- |
--- | World は Fiber 圏の解釈を規定する。
--- | Nomos（大域意志）が Sediment の解釈を規定し、
--- | DO が眠って起きた時に World が変わりうる（コードのデプロイ）。
-module Noema.Core.World
+-- | Nomos はグロタンディーク・トポスにおける被覆構造に対応。
+-- | 「どの操作が合法か」を規定し、Sediment の解釈を決定する。
+-- | DO が眠って起きた時に Nomos が変わりうる（コードのデプロイ）。
+-- |
+-- | ## 哲学的背景
+-- |
+-- | Nomos（νόμος）はギリシャ語で「法」「規範」「慣習」。
+-- | 大域意志として、Subject や Thing の振る舞いを規定する。
+module Noema.Topos.Nomos
   ( NomosVersion(..)
   , NomosReference(..)
   , World
@@ -18,7 +23,7 @@ module Noema.Core.World
 
 import Prelude
 import Data.Maybe (Maybe(..))
-import Noema.Core.Locus (Timestamp)
+import Noema.Topos.Situs (Timestamp)
 
 -- | Nomos のバージョン
 -- | セマンティックバージョニングを想定
