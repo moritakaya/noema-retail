@@ -71,11 +71,8 @@ packages/
 │   │   │   │       ├── RelationF.purs
 │   │   │   │       ├── ContractF.purs
 │   │   │   │       └── NoemaF.purs
-│   │   │   ├── Cognition/Handler.purs
+│   │   │   ├── Cognition/Interpretation.purs
 │   │   │   └── Sedimentation/     # Factum, Seal
-│   │   └── Platform/Cloudflare/   # 汎用 Workers インフラ
-│   │       ├── Router.purs
-│   │       └── FFI/               # DurableObject, Request, Response, etc.
 │   └── spago.yaml
 │
 └── noema-retail/                  # 小売実装
@@ -94,8 +91,10 @@ packages/
     │   │   ├── InventoryCarrier.purs
     │   │   └── Rakuten, Smaregi, Yahoo, Stripe
     │   ├── TlaPlus/               # TLA+ 連携
-    │   └── Platform/Cloudflare/
-    │       └── InventoryAttractor.purs  # Retail 固有の DO
+    │   └── Platform/Cloudflare/   # Cloudflare Workers 実装
+    │       ├── Router.purs
+    │       ├── InventoryAttractor.purs
+    │       └── FFI/               # DurableObject, Request, Response, etc.
     ├── worker.js                  # Cloudflare Workers エントリーポイント
     └── spago.yaml
 

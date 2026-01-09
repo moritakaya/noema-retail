@@ -85,10 +85,13 @@ noema-core (DSL)              noema-retail (実装)
 │   └── NoemaF                │   └── Rakuten, Smaregi, Yahoo, Stripe
 ├── Topos/Situs, Nomos, Presheaf
 ├── Horizont/Carrier  # 外的地平線（担体）
-├── Sedimentation/Factum, Seal
+└── Sedimentation/Factum, Seal
+
+noema-retail (実装 + Platform)
+├── ...（上記）
 └── Platform/Cloudflare/
-    ├── FFI, Router  # 汎用インフラ
-    └── InventoryAttractor（Retail固有DO）  # noema-retail
+    ├── FFI/, Router.purs
+    └── InventoryAttractor.purs
 ```
 
 **依存方向**: `noema-retail` → `noema-core`（逆方向は禁止）
@@ -122,15 +125,6 @@ packages/
 │   │   │   └── Sedimentation/
 │   │   │       ├── Factum.purs    # 流動的事実（newtype Factum a = Factum (Effect a)）
 │   │   │       └── Seal.purs      # 確定した事実
-│   │   └── Platform/Cloudflare/   # 汎用 Cloudflare インフラ
-│   │       ├── Router.purs        # HTTP ルーター
-│   │       └── FFI/               # Workers API バインディング
-│   │           ├── DurableObject.purs
-│   │           ├── Request.purs
-│   │           ├── Response.purs
-│   │           ├── SqlStorage.purs
-│   │           ├── Fetch.purs
-│   │           └── Crypto.purs
 │   └── spago.yaml
 │
 └── noema-retail/                  # 小売実装
@@ -154,8 +148,16 @@ packages/
     │   ├── TlaPlus/
     │   │   ├── Extract.purs
     │   │   └── Feedback.purs
-    │   └── Platform/Cloudflare/
-    │       └── InventoryAttractor.purs  # Retail 固有の DO
+    │   └── Platform/Cloudflare/       # Cloudflare Workers 実装
+    │       ├── Router.purs            # HTTP ルーター
+    │       ├── InventoryAttractor.purs  # Retail DO
+    │       └── FFI/                   # Workers API バインディング
+    │           ├── DurableObject.purs
+    │           ├── Request.purs
+    │           ├── Response.purs
+    │           ├── SqlStorage.purs
+    │           ├── Fetch.purs
+    │           └── Crypto.purs
     ├── worker.js                  # Cloudflare Workers エントリーポイント
     └── spago.yaml
 ```
