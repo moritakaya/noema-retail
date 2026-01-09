@@ -49,7 +49,7 @@ Sedimentation/（沈殿）
 
 流れ:
   Factum（液体）→ DO.sediment（沈殿過程）→ Seal（固体）→ collapse → Effect
-  ※ DO = InventoryAttractor 等の Durable Object（Attractor として機能）
+  ※ DO = InventoryAttractor, SubjectAttractor 等の Durable Object（Attractor として機能）
 ```
 
 ### 技術的語彙から哲学的語彙への移行
@@ -91,7 +91,8 @@ noema-retail (実装 + Platform)
 ├── ...（上記）
 └── Platform/Cloudflare/
     ├── FFI/, Router.purs
-    └── InventoryAttractor.purs
+    ├── InventoryAttractor.purs    # 在庫管理 DO
+    └── SubjectAttractor.purs      # 主体管理 DO
 ```
 
 **依存方向**: `noema-retail` → `noema-core`（逆方向は禁止）
@@ -149,7 +150,8 @@ packages/
     │   │   └── Feedback.purs
     │   └── Platform/Cloudflare/       # Cloudflare Workers 実装
     │       ├── Router.purs            # HTTP ルーター
-    │       ├── InventoryAttractor.purs  # Retail DO
+    │       ├── InventoryAttractor.purs  # 在庫管理 DO
+    │       ├── SubjectAttractor.purs    # 主体管理 DO
     │       └── FFI/                   # Workers API バインディング
     │           ├── DurableObject.purs
     │           ├── Request.purs

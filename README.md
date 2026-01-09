@@ -11,9 +11,9 @@
 │                      随伴 F ⊣ U                                 │
 │                                                                 │
 │  Vorzeichnung/          ⊣         Cognition/                   │
-│  ├── FreerArrow.purs              ├── Handler.purs              │
-│  └── Vocabulary/                  └── InventoryHandler.purs     │
-│      └── InventoryF                                             │
+│  ├── Intent.purs                  └── Interpretation.purs       │
+│  └── Vocabulary/                                                │
+│      └── InventoryF, SubjectF                                   │
 │           │                              │                      │
 │           ▼ Arrow Effects               ▼ U (忘却)              │
 │       Intent ────────────────────────▶ Effect                   │
@@ -80,12 +80,11 @@ packages/
     │   ├── Main.purs              # Worker エントリーポイント
     │   ├── Noema/
     │   │   ├── Vorzeichnung/Vocabulary/
-    │   │   │   ├── InventoryF.purs
-    │   │   │   ├── HttpF.purs
-    │   │   │   └── StorageF.purs
+    │   │   │   └── InventoryF.purs
     │   │   ├── Cognition/
-    │   │   │   ├── InventoryHandler.purs
-    │   │   │   └── StorageHandler.purs
+    │   │   │   ├── InventoryInterpretation.purs
+    │   │   │   ├── SubjectInterpretation.purs
+    │   │   │   └── StorageInterpretation.purs
     │   ├── Horizont/              # 外界との地平線（Carrier 実装）
     │   │   ├── Channel.purs
     │   │   ├── InventoryCarrier.purs
@@ -93,7 +92,8 @@ packages/
     │   ├── TlaPlus/               # TLA+ 連携
     │   └── Platform/Cloudflare/   # Cloudflare Workers 実装
     │       ├── Router.purs
-    │       ├── InventoryAttractor.purs
+    │       ├── InventoryAttractor.purs  # 在庫管理 DO
+    │       ├── SubjectAttractor.purs    # 主体管理 DO
     │       └── FFI/               # DurableObject, Request, Response, etc.
     ├── worker.js                  # Cloudflare Workers エントリーポイント
     └── spago.yaml
@@ -142,8 +142,8 @@ wrangler deploy --env production   # 本番環境
 ## 開発ガイド
 
 - [設計原理](docs/design-principles.md)
-- [Intent 記述ガイド](src/Noema/Vorzeichnung/README.md)
-- [Handler 実装ガイド](src/Noema/Cognition/README.md)
+- [Topos（内的構造）](packages/noema-core/src/Noema/Topos/README.md)
+- [Horizont（外的地平線）](packages/noema-core/src/Noema/Horizont/README.md)
 - [TLA+ 検証](tlaplus/README.md)
 
 ## API エンドポイント

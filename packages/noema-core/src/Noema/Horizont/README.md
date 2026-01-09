@@ -91,9 +91,9 @@ case result of
 
 ```
 Horizont/
-└── Carrier.purs ──────────────────────► noema-retail/Gateway/
+└── Carrier.purs ──────────────────────► noema-retail/Horizont/
                                               │
-                                              ├── InventoryAdapter.purs
+                                              ├── InventoryCarrier.purs
                                               │   (Carrier を継承)
                                               │
                                               ├── Rakuten.purs
