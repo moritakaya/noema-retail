@@ -21,7 +21,7 @@
 │                                          │                      │
 │                                          ▼                      │
 │                                 Sedimentation/                  │
-│                                 └── Attractor                   │
+│                                 └── Factum → Seal               │
 │                                     (沈殿)                       │
 │                                          │                      │
 │                                          ▼                      │
@@ -72,7 +72,7 @@ packages/
 │   │   │   │       ├── ContractF.purs
 │   │   │   │       └── NoemaF.purs
 │   │   │   ├── Cognition/Handler.purs
-│   │   │   └── Sedimentation/     # Attractor, Seal
+│   │   │   └── Sedimentation/     # Factum, Seal
 │   │   └── Platform/Cloudflare/   # 汎用 Workers インフラ
 │   │       ├── Router.purs
 │   │       └── FFI/               # DurableObject, Request, Response, etc.

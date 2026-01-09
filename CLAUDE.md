@@ -26,8 +26,8 @@
 │                                          ▼                      │
 │                                 Sedimentation/                  │
 │                                 ├── Factum    (流動的事実)      │
-│                                 ├── Attractor (沈殿の場)        │
 │                                 └── Seal      (確定した事実)    │
+│                                    ※ Attractor = DO（沈殿の場） │
 │                                          │                      │
 │                                          ▼ collapse (忘却)      │
 │                                       Effect                    │
@@ -48,7 +48,8 @@ Sedimentation/（沈殿）
 └── Seal.purs        -- 沈殿の証明（確定した事実）
 
 流れ:
-  Factum（液体）→ Attractor（沈殿過程）→ Seal（固体）→ collapse → Effect
+  Factum（液体）→ DO.sediment（沈殿過程）→ Seal（固体）→ collapse → Effect
+  ※ DO = InventoryAttractor 等の Durable Object（Attractor として機能）
 ```
 
 ### 技術的語彙から哲学的語彙への移行
@@ -84,7 +85,7 @@ noema-core (DSL)              noema-retail (実装)
 │   └── NoemaF                │   └── Rakuten, Smaregi, Yahoo, Stripe
 ├── Topos/Situs, Nomos, Presheaf
 ├── Horizont/Carrier  # 外的地平線（担体）
-├── Sedimentation/Factum, Attractor, Seal
+├── Sedimentation/Factum, Seal
 └── Platform/Cloudflare/
     ├── FFI, Router  # 汎用インフラ
     └── InventoryAttractor（Retail固有DO）  # noema-retail

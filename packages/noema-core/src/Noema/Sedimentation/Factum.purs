@@ -20,11 +20,11 @@
 -- | ```
 -- | Sedimentation/（沈殿）
 -- | ├── Factum.purs      -- 解釈の結果（まだ流動的な事実）← このモジュール
--- | ├── Attractor.purs   -- 沈殿の場（Durable Object）
 -- | └── Seal.purs        -- 沈殿の証明（確定した事実）
 -- |
 -- | 流れ:
--- |   Factum（液体）→ Attractor（沈殿過程）→ Seal（固体）
+-- |   Factum（液体）→ Seal（固体）
+-- |   ※ 沈殿過程は InventoryAttractor（noema-retail）等の DO で実装
 -- | ```
 -- |
 -- | ## 「実行とは忘却である」
