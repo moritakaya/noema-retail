@@ -1,11 +1,12 @@
-// Noema Retail: Cloudflare Workers Runtime Wrapper
+// Noema Retail: Cloudflare Workers Entry Point
 //
-// PureScript のコンパイル結果を Cloudflare Workers ランタイムに接続する。
-// Durable Object クラスのエクスポートと、fetch/scheduled ハンドラーの登録を行う。
+// PureScript モジュールを Cloudflare Workers に接続するエントリーポイント。
+// - Durable Object クラス（InventoryAttractor）のエクスポート
+// - Worker の fetch/scheduled ハンドラーの登録
 
 import { DurableObject } from 'cloudflare:workers';
-import * as Main from '../../../output/Main/index.js';
-import * as InventoryAttractorModule from '../../../output/Platform.Cloudflare.InventoryAttractor/index.js';
+import * as Main from '../../output/Main/index.js';
+import * as InventoryAttractorModule from '../../output/Platform.Cloudflare.InventoryAttractor/index.js';
 
 // InventoryAttractor Durable Object
 export class InventoryAttractor extends DurableObject {

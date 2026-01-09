@@ -96,8 +96,7 @@ packages/
     │   ├── TlaPlus/               # TLA+ 連携
     │   └── Platform/Cloudflare/
     │       └── InventoryAttractor.purs  # Retail 固有の DO
-    ├── ffi/
-    │   └── runtime.js             # Cloudflare Workers エントリーポイント
+    ├── worker.js                  # Cloudflare Workers エントリーポイント
     └── spago.yaml
 
 tlaplus/
