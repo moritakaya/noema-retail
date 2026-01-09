@@ -77,16 +77,16 @@ import Prelude
 import Data.Maybe (Maybe)
 
 -- | DO の識別子（空間座標）
-newtype LocusId = LocusId String
+newtype SitusId = SitusId String
 
-derive instance eqLocusId :: Eq LocusId
-derive instance ordLocusId :: Ord LocusId
-derive newtype instance showLocusId :: Show LocusId
+derive instance eqSitusId :: Eq SitusId
+derive instance ordSitusId :: Ord SitusId
+derive newtype instance showSitusId :: Show SitusId
 
 -- | Subject, Thing, Contract の識別子
-newtype SubjectId = SubjectId LocusId
+newtype SubjectId = SubjectId SitusId
 newtype ThingId = ThingId String  -- Thing は DO ではない
-newtype ContractId = ContractId LocusId
+newtype ContractId = ContractId SitusId
 newtype RelationId = RelationId String
 newtype SedimentId = SedimentId Int  -- Lamport Clock
 

@@ -127,7 +127,7 @@ type InventoryIntent a b = Intent InventoryF a b
 -- | 在庫を取得する Intent
 -- |
 -- | ```purescript
--- | getStock (ThingId "SKU-001") (SubjectId (LocusId "warehouse-001"))
+-- | getStock (ThingId "SKU-001") (SubjectId (SitusId "warehouse-001"))
 -- |   :: InventoryIntent Unit StockInfo
 -- | ```
 getStock :: ThingId -> SubjectId -> InventoryIntent Unit StockInfo

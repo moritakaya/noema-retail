@@ -17,8 +17,8 @@
 -- | 注: LocationId は廃止。Subject が Thing を包摂し、その位置を決定する。
 module Noema.Topos.Situs
   ( -- * Locus（空間座標）
-    LocusId(..)
-  , mkLocusId
+    SitusId(..)
+  , mkSitusId
     -- * Subject（意志を持つ主体）
   , SubjectId(..)
   , mkSubjectId
@@ -58,19 +58,19 @@ import Data.Newtype (class Newtype, unwrap)
 import Effect (Effect)
 
 -- ============================================================
--- LocusId: DO の識別子（空間座標）
+-- SitusId: DO の識別子（空間座標）
 -- ============================================================
 
 -- | DO の識別子（空間座標）
-newtype LocusId = LocusId String
+newtype SitusId = SitusId String
 
-derive instance Newtype LocusId _
-derive instance eqLocusId :: Eq LocusId
-derive instance ordLocusId :: Ord LocusId
-derive newtype instance showLocusId :: Show LocusId
+derive instance Newtype SitusId _
+derive instance eqSitusId :: Eq SitusId
+derive instance ordSitusId :: Ord SitusId
+derive newtype instance showSitusId :: Show SitusId
 
-mkLocusId :: String -> LocusId
-mkLocusId = LocusId
+mkSitusId :: String -> SitusId
+mkSitusId = SitusId
 
 -- ============================================================
 -- SubjectId: 意志を持つ主体
@@ -82,20 +82,20 @@ mkLocusId = LocusId
 -- | Subject は Thing を包摂し、その位置を決定する。
 -- |
 -- | 注: 旧設計の LocationId は SubjectId に統合された。
-newtype SubjectId = SubjectId LocusId
+newtype SubjectId = SubjectId SitusId
 
 derive instance Newtype SubjectId _
 derive instance eqSubjectId :: Eq SubjectId
 derive instance ordSubjectId :: Ord SubjectId
 
 instance showSubjectId :: Show SubjectId where
-  show (SubjectId (LocusId s)) = "(SubjectId " <> s <> ")"
+  show (SubjectId (SitusId s)) = "(SubjectId " <> s <> ")"
 
 mkSubjectId :: String -> SubjectId
-mkSubjectId s = SubjectId (LocusId s)
+mkSubjectId s = SubjectId (SitusId s)
 
 unwrapSubjectId :: SubjectId -> String
-unwrapSubjectId (SubjectId (LocusId s)) = s
+unwrapSubjectId (SubjectId (SitusId s)) = s
 
 -- ============================================================
 -- ThingId: 意志を持たない物
@@ -125,20 +125,20 @@ unwrapThingId = unwrap
 -- | Contract の識別子
 -- |
 -- | Contract は DO として実装される。
-newtype ContractId = ContractId LocusId
+newtype ContractId = ContractId SitusId
 
 derive instance Newtype ContractId _
 derive instance eqContractId :: Eq ContractId
 derive instance ordContractId :: Ord ContractId
 
 instance showContractId :: Show ContractId where
-  show (ContractId (LocusId s)) = "(ContractId " <> s <> ")"
+  show (ContractId (SitusId s)) = "(ContractId " <> s <> ")"
 
 mkContractId :: String -> ContractId
-mkContractId s = ContractId (LocusId s)
+mkContractId s = ContractId (SitusId s)
 
 unwrapContractId :: ContractId -> String
-unwrapContractId (ContractId (LocusId s)) = s
+unwrapContractId (ContractId (SitusId s)) = s
 
 -- ============================================================
 -- RelationId: 関係
