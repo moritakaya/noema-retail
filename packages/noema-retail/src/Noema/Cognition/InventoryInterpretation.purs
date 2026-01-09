@@ -40,7 +40,13 @@ module Noema.Cognition.InventoryInterpretation
   , mkInventoryEnv
   , initializeSchema
   , interpretInventoryF
+  -- FFI exports (shared with other Interpretations)
   , exec
+  , execWithParams
+  , one
+  , toArray
+  , getField
+  , generateId
   ) where
 
 import Prelude
