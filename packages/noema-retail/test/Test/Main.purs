@@ -10,6 +10,7 @@ import Effect (Effect)
 import Effect.Console (log)
 
 import Test.Laws.ArrowInventory as ArrowInventory
+import Test.Item as Item
 
 main :: Effect Unit
 main = do
@@ -20,6 +21,11 @@ main = do
 
   -- InventoryF を使った Arrow 法則
   ArrowInventory.runInventoryTests
+
+  log ""
+
+  -- Item テスト
+  Item.main
 
   log ""
   log "╔════════════════════════════════════════════════════════════╗"
