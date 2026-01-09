@@ -1,11 +1,12 @@
 -- | Gateway.InventoryAdapter
 -- |
--- | 在庫管理用 Gateway アダプター型クラス。
--- | GatewayAdapter を継承し、在庫固有のメソッドを追加。
+-- | 在庫管理用 Carrier 型クラス。
+-- | Carrier を継承し、在庫固有のメソッドを追加。
 -- |
 -- | 圏論的解釈：
 -- | InventoryAdapter は Channel^op → Set として機能する。
 -- | 各チャネルの在庫データを Noema 統一形式に変換する自然変換。
+-- | Horizont（地平線）を越えて外部在庫データを担う。
 module Gateway.InventoryAdapter
   ( class InventoryAdapter
   , channel
@@ -28,7 +29,7 @@ import Data.Maybe (Maybe)
 import Effect.Aff (Aff)
 import Noema.Topos.Situs (ThingId, Quantity, Timestamp)
 import Gateway.Channel (Channel)
-import Platform.Cloudflare.Gateway.Adapter (class GatewayAdapter, AdapterError)
+import Noema.Horizont.Carrier (class Carrier, CarrierError)
 
 -- | 同期結果
 data SyncResult
@@ -60,19 +61,20 @@ type OrderInfo =
   , channel :: Channel
   }
 
--- | 在庫用 Gateway アダプター型クラス
+-- | 在庫用 Carrier 型クラス
 -- |
--- | GatewayAdapter を継承し、在庫固有のメソッドを追加。
+-- | Carrier を継承し、在庫固有のメソッドを追加。
 -- | 各チャネル（楽天、スマレジ等）はこのインターフェースを実装する。
-class GatewayAdapter a <= InventoryAdapter a where
-  -- | このアダプターが対応するチャネル
+-- | Horizont（地平線）を越えて外部在庫システムと接続する。
+class Carrier a <= InventoryAdapter a where
+  -- | この Carrier が対応するチャネル
   channel :: a -> Channel
 
-  -- | チャネルから在庫を取得
-  getStock :: a -> ThingId -> Aff (Either AdapterError StockInfo)
+  -- | チャネルから在庫を取得（地平線を越えて外部データを担う）
+  getStock :: a -> ThingId -> Aff (Either CarrierError StockInfo)
 
-  -- | チャネルの在庫を更新
-  setStock :: a -> ThingId -> Quantity -> Aff (Either AdapterError Unit)
+  -- | チャネルの在庫を更新（地平線を越えて外部へ反映）
+  setStock :: a -> ThingId -> Quantity -> Aff (Either CarrierError Unit)
 
   -- | チャネル → Noema への同期
   syncToNoema :: a -> ThingId -> Aff SyncResult

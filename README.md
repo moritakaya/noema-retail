@@ -25,9 +25,9 @@
 │                                     (沈殿)                       │
 │                                          │                      │
 │                                          ▼                      │
-│                                 Presheaf/                       │
+│                                 Horizont/                       │
 │                                 Channel^op → Set                │
-│                                 (外界への表現)                   │
+│                                 (外界との地平線)                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -58,7 +58,12 @@ packages/
 │   ├── src/
 │   │   ├── Control/Arrow.purs     # Arrow 型クラス
 │   │   ├── Noema/
-│   │   │   ├── Topos/             # トポス構造（Situs, Nomos, Presheaf）
+│   │   │   ├── Topos/             # トポス構造（内的）
+│   │   │   │   ├── Situs.purs     # 空間座標
+│   │   │   │   ├── Nomos.purs     # 法座標
+│   │   │   │   └── Presheaf.purs  # ステージング
+│   │   │   ├── Horizont/          # 地平線（外的）
+│   │   │   │   └── Carrier.purs   # 外部接続の担体
 │   │   │   ├── Vorzeichnung/      # 予描図式（Intent, Combinators）
 │   │   │   │   └── Vocabulary/    # AVDC 語彙
 │   │   │   │       ├── SubjectF.purs
@@ -84,7 +89,10 @@ packages/
     │   │   ├── Cognition/
     │   │   │   ├── InventoryHandler.purs
     │   │   │   └── StorageHandler.purs
-    │   │   └── Gateway/           # Rakuten, Smaregi, Yahoo, Stripe
+    │   ├── Gateway/               # Horizont 実装（Carrier 具象）
+    │   │   ├── Channel.purs
+    │   │   ├── InventoryAdapter.purs
+    │   │   └── Rakuten, Smaregi, Yahoo, Stripe
     │   ├── TlaPlus/               # TLA+ 連携
     │   └── Platform/Cloudflare/
     │       └── InventoryAttractor.purs  # Retail 固有の DO

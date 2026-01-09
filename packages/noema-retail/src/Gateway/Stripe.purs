@@ -28,7 +28,7 @@ import Effect.Aff (Aff)
 import Noema.Topos.Situs (ThingId(..))
 import Gateway.Channel (Channel(..))
 import Gateway.InventoryAdapter (class InventoryAdapter, SyncResult(..), InventoryEvent(..))
-import Platform.Cloudflare.Gateway.Adapter (class GatewayAdapter, AdapterError(..))
+import Noema.Horizont.Carrier (class Carrier, CarrierError(..))
 import Platform.Cloudflare.FFI.Crypto (hmacSha256, secureCompare)
 
 -- | Stripe アダプター設定
@@ -113,9 +113,9 @@ handleWebhook (StripeAdapter config) payload signature = do
       -- charge.refunded → 在庫増加イベント
       pure $ WebhookIgnored "Event type not handled"
 
--- | GatewayAdapter インスタンス
-instance GatewayAdapter StripeAdapter where
-  adapterName _ = "Stripe"
+-- | Carrier インスタンス
+instance Carrier StripeAdapter where
+  carrierName _ = "Stripe"
   healthCheck _ = pure $ Right unit
 
 -- | InventoryAdapter インスタンス

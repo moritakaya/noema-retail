@@ -21,7 +21,7 @@ import Foreign.Object as Object
 import Noema.Topos.Situs (ThingId(..), Quantity(..), Timestamp)
 import Gateway.Channel (Channel(..))
 import Gateway.InventoryAdapter (class InventoryAdapter, SyncResult(..), getStock, setStock)
-import Platform.Cloudflare.Gateway.Adapter (class GatewayAdapter, AdapterError(..))
+import Noema.Horizont.Carrier (class Carrier, CarrierError(..))
 import Platform.Cloudflare.FFI.Fetch (fetchWithInit)
 import Platform.Cloudflare.FFI.Response (status, ok, text)
 
@@ -40,9 +40,9 @@ newtype SmaregiAdapter = SmaregiAdapter SmaregiConfig
 mkSmaregiAdapter :: SmaregiConfig -> SmaregiAdapter
 mkSmaregiAdapter = SmaregiAdapter
 
--- | GatewayAdapter インスタンス
-instance GatewayAdapter SmaregiAdapter where
-  adapterName _ = "Smaregi"
+-- | Carrier インスタンス
+instance Carrier SmaregiAdapter where
+  carrierName _ = "Smaregi"
   healthCheck _ = pure $ Right unit
 
 -- | InventoryAdapter インスタンス
@@ -119,7 +119,7 @@ instance InventoryAdapter SmaregiAdapter where
 --------------------------------------------------------------------------------
 
 -- | 入荷登録
-registerReceipt :: SmaregiConfig -> String -> Int -> String -> Aff (Either AdapterError Unit)
+registerReceipt :: SmaregiConfig -> String -> Int -> String -> Aff (Either CarrierError Unit)
 registerReceipt config productId quantity reason = do
   let url = config.apiBaseUrl <> "/pos/stock/receipt"
       body = """{"product_id":""" <> "\"" <> productId <> "\"" <>
@@ -141,7 +141,7 @@ registerReceipt config productId quantity reason = do
       pure $ Left $ ApiError (status response) bodyText
 
 -- | 出荷登録
-registerShipment :: SmaregiConfig -> String -> Int -> String -> Aff (Either AdapterError Unit)
+registerShipment :: SmaregiConfig -> String -> Int -> String -> Aff (Either CarrierError Unit)
 registerShipment config productId quantity reason = do
   let url = config.apiBaseUrl <> "/pos/stock/shipment"
       body = """{"product_id":""" <> "\"" <> productId <> "\"" <>

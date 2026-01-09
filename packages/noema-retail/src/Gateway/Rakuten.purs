@@ -24,7 +24,7 @@ import Foreign.Object as Object
 import Noema.Topos.Situs (ThingId(..), Quantity(..))
 import Gateway.Channel (Channel(..))
 import Gateway.InventoryAdapter (class InventoryAdapter, SyncResult(..), getStock, setStock)
-import Platform.Cloudflare.Gateway.Adapter (class GatewayAdapter, AdapterError(..))
+import Noema.Horizont.Carrier (class Carrier, CarrierError(..))
 import Platform.Cloudflare.FFI.Fetch (fetchWithInit)
 import Platform.Cloudflare.FFI.Response (status, ok, text)
 import Platform.Cloudflare.FFI.Crypto (base64Encode)
@@ -61,9 +61,9 @@ parseProductId productId =
     [manageNumber, variantId] -> { manageNumber, variantId }
     _ -> { manageNumber: productId, variantId: "default" }
 
--- | GatewayAdapter インスタンス
-instance GatewayAdapter RakutenAdapter where
-  adapterName _ = "Rakuten"
+-- | Carrier インスタンス
+instance Carrier RakutenAdapter where
+  carrierName _ = "Rakuten"
   healthCheck (RakutenAdapter config) = do
     -- 簡易ヘルスチェック: ライセンス有効期限確認のみ
     pure $ Right unit

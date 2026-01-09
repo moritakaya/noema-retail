@@ -28,7 +28,7 @@ import Effect.Class (liftEffect)
 import Foreign.Object as Object
 import Noema.Topos.Situs (ThingId(..), Quantity(..))
 import Gateway.InventoryAdapter (StockInfo)
-import Platform.Cloudflare.Gateway.Adapter (AdapterError(..))
+import Noema.Horizont.Carrier (CarrierError(..))
 import Platform.Cloudflare.FFI.Fetch (fetchWithInit)
 import Platform.Cloudflare.FFI.Response (status, ok, text)
 
@@ -62,7 +62,7 @@ mkYahooAdapter config = do
   pure { config, tokenCache }
 
 -- | アクセストークンを取得（キャッシュ付き）
-getAccessToken :: YahooAdapter -> Aff (Either AdapterError String)
+getAccessToken :: YahooAdapter -> Aff (Either CarrierError String)
 getAccessToken adapter = do
   cached <- liftEffect $ Ref.read adapter.tokenCache
   now <- getCurrentTime
@@ -72,7 +72,7 @@ getAccessToken adapter = do
     _ -> refreshAccessToken adapter
 
 -- | アクセストークンをリフレッシュ
-refreshAccessToken :: YahooAdapter -> Aff (Either AdapterError String)
+refreshAccessToken :: YahooAdapter -> Aff (Either CarrierError String)
 refreshAccessToken adapter = do
   let config = adapter.config
       url = "https://auth.login.yahoo.co.jp/yconnect/v2/token"
@@ -107,8 +107,8 @@ parseProductId productId =
     [itemCode, subCode] -> { itemCode, subCode }
     _ -> { itemCode: productId, subCode: "" }
 
--- | ChannelAdapter インスタンス（手動実装）
-getStockYahoo :: YahooAdapter -> ThingId -> Aff (Either AdapterError StockInfo)
+-- | Carrier インスタンス（手動実装）
+getStockYahoo :: YahooAdapter -> ThingId -> Aff (Either CarrierError StockInfo)
 getStockYahoo adapter (ThingId productId) = do
   tokenResult <- getAccessToken adapter
   case tokenResult of
@@ -140,7 +140,7 @@ getStockYahoo adapter (ThingId productId) = do
           errText <- text response
           pure $ Left $ ApiError (status response) errText
 
-setStockYahoo :: YahooAdapter -> ThingId -> Quantity -> Aff (Either AdapterError Unit)
+setStockYahoo :: YahooAdapter -> ThingId -> Quantity -> Aff (Either CarrierError Unit)
 setStockYahoo adapter (ThingId productId) (Quantity qty) = do
   tokenResult <- getAccessToken adapter
   case tokenResult of

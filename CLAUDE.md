@@ -29,9 +29,9 @@
 │                                     (沈殿)                       │
 │                                          │                      │
 │                                          ▼                      │
-│                                 Gateway/                        │
+│                                 Horizont/                       │
 │                                 Channel^op → Set                │
-│                                 (外界への接続)                   │
+│                                 (外界との地平線)                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -51,16 +51,16 @@ noema-core (DSL)              noema-retail (実装)
 ├── Arrow 型クラス            ├── InventoryF（ドメイン語彙）
 ├── Intent / Handler          ├── HttpF / StorageF（インフラ）
 ├── AVDC 語彙                 ├── Handlers（具体実装）
-│   ├── SubjectF              ├── Gateway/（チャネルアダプター）
+│   ├── SubjectF              ├── Gateway/（チャネル実装）
 │   ├── ThingF                │   ├── Channel, InventoryAdapter
 │   ├── RelationF             │   └── Rakuten, Smaregi, Yahoo, Stripe
 │   ├── ContractF             ├── InventoryAttractor（Retail固有DO）
 │   └── NoemaF                └── TlaPlus/
 ├── Topos/Situs, Nomos, Presheaf
+├── Horizont/Carrier  # 外的地平線（担体）
 ├── Sedimentation/Attractor, Seal
 └── Platform/Cloudflare/
     ├── FFI, Router  # 汎用インフラ
-    └── Gateway/Adapter  # 汎用 Gateway 型クラス
 ```
 
 **依存方向**: `noema-retail` → `noema-core`（逆方向は禁止）
@@ -73,10 +73,12 @@ packages/
 │   ├── src/
 │   │   ├── Control/Arrow.purs     # Arrow 型クラス
 │   │   ├── Noema/
-│   │   │   ├── Topos/             # トポス構造の基盤
+│   │   │   ├── Topos/             # トポス構造（内的）
 │   │   │   │   ├── Situs.purs     # 空間座標（Site の点）
 │   │   │   │   ├── Nomos.purs     # 法座標（被覆構造）
 │   │   │   │   └── Presheaf.purs  # ステージング（前層）
+│   │   │   ├── Horizont/          # 地平線（外的）
+│   │   │   │   └── Carrier.purs   # 外部接続の担体
 │   │   │   ├── Vorzeichnung/      # 予描図式（左随伴）
 │   │   │   │   ├── Intent.purs    # Arrow-based Intent
 │   │   │   │   ├── FreerArrow.purs
@@ -94,8 +96,6 @@ packages/
 │   │   │       └── Seal.purs
 │   │   └── Platform/Cloudflare/   # 汎用 Cloudflare インフラ
 │   │       ├── Router.purs        # HTTP ルーター
-│   │       ├── Gateway/           # 汎用 Gateway 型クラス
-│   │       │   └── Adapter.purs
 │   │       └── FFI/               # Workers API バインディング
 │   │           ├── DurableObject.purs
 │   │           ├── Request.purs
@@ -116,9 +116,9 @@ packages/
     │   │   └── Cognition/
     │   │       ├── InventoryHandler.purs
     │   │       └── StorageHandler.purs
-    │   ├── Gateway/                   # 外部チャネルアダプター
+    │   ├── Gateway/                   # 外部チャネル Carrier 実装
     │   │   ├── Channel.purs           # Channel 列挙型
-    │   │   ├── InventoryAdapter.purs  # 在庫用 Adapter 型クラス
+    │   │   ├── InventoryAdapter.purs  # 在庫用 Carrier 型クラス
     │   │   ├── Rakuten.purs
     │   │   ├── Smaregi.purs
     │   │   ├── Yahoo.purs
@@ -139,9 +139,9 @@ packages/
 |---|---|---|
 | **DSL** | PureScript | Arrow Effects（Vorzeichnung） |
 | **Handler** | PureScript | A-algebra（Cognition） |
-| **Runtime** | TypeScript/JS | Carrier（台） |
+| **Runtime** | TypeScript/JS | 台（carrier） |
 | **State** | Durable Objects + SQLite | Sedimentation |
-| **Gateway** | Hono | 外界との接点 |
+| **Horizont** | Hono | 外界との地平線（Carrier） |
 | **Verification** | TLA+ | 形式的モデル検証 |
 
 ## コマンド
@@ -175,9 +175,9 @@ java -jar ~/tla2tools.jar -config InventorySimple.cfg InventorySimple.tla
 1. **随伴の保存**: Vorzeichnung/ ⊣ Cognition/ が明示的
 2. **関手の局所性**: 語彙は Vocabulary/ に集約
 3. **技術非依存**: Noema/ は Platform/ に依存しない
-4. **Gateway として在庫**: Inventory : Channel^op → Set（外部システム連携）
+4. **Horizont として在庫**: Inventory : Channel^op → Set（外部システム連携）
 5. **Arrow Effects**: 分岐禁止（ArrowChoice なし）
-6. **Gateway + Platform 統合**: Gateway は Platform 配下（システム境界の一部）
+6. **Topos / Horizont 対称性**: 内的構造（Topos）と外的地平線（Horizont）の分離
 
 ---
 
@@ -248,6 +248,9 @@ Noema は既存の設計手法（DDD, Clean Architecture 等）に依存しな�
 | Vorzeichnung | 前描画スキーマ | - |
 | Vocabulary | ドメイン語彙 | Domain Model |
 | Arrow Effects | 分岐禁止の効果系 | Effect System |
+| Topos | 内的論理空間 | - |
+| Horizont | 外界との地平線 | Gateway/Adapter |
+| Carrier | 外部接続の担体 | Adapter |
 
 ### 設計書更新のトリガー
 

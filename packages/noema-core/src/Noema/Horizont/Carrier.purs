@@ -1,20 +1,29 @@
--- | Platform.Cloudflare.Gateway.Adapter
+-- | Noema Horizont: Carrier（担体）
 -- |
--- | 汎用 Gateway アダプターの基底型クラス。
--- | Inventory 等のドメイン固有機能に依存しない。
+-- | 外界との接続を担う基底型クラス。
+-- | Horizont（地平線）は Intent が外界と接触する境界であり、
+-- | Carrier はその境界を越えて外部データを「担う」構造である。
 -- |
--- | 圏論的解釈：
--- | Gateway は Platform（台）から外界への射として機能する。
--- | Adapter は外部システムとの通信プロトコルを抽象化する。
-module Platform.Cloudflare.Gateway.Adapter
-  ( class GatewayAdapter
-  , adapterName
+-- | ## 圏論的位置づけ
+-- |
+-- | Horizont は外的前層 Channel^op → Set を表現する。
+-- | Carrier は A-algebra の carrier（台集合）に対応し、
+-- | 外部システムとの通信プロトコルを抽象化する。
+-- |
+-- | ## 現象学的基盤
+-- |
+-- | Horizont はフッサール現象学における「地平線」に由来する。
+-- | 意識の対象を取り巻く潜在的経験の場であり、
+-- | 今は主題的に捉えられていないが常に「そこにある」背景。
+module Noema.Horizont.Carrier
+  ( class Carrier
+  , carrierName
   , healthCheck
   -- Types
-  , AdapterConfig
-  , AdapterError(..)
+  , CarrierConfig
+  , CarrierError(..)
   -- Utilities
-  , handleAdapterError
+  , handleCarrierError
   , retryWithBackoff
   , isRetryable
   ) where
@@ -26,14 +35,17 @@ import Effect.Aff (Aff, delay)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Data.Time.Duration (Milliseconds(..))
 
--- | アダプター設定の共通型
-type AdapterConfig =
+-- | Carrier 設定の共通型
+type CarrierConfig =
   { apiBaseUrl :: String
   , timeout :: Int  -- ミリ秒
   }
 
--- | アダプターエラー
-data AdapterError
+-- | Carrier エラー
+-- |
+-- | 外界との接触で発生しうるエラーを表現する。
+-- | 地平線（Horizont）を越える際の障害。
+data CarrierError
   = AuthenticationError String
   | NetworkError String
   | RateLimitError Int  -- リトライまでの秒数
@@ -41,9 +53,9 @@ data AdapterError
   | ParseError String
   | ConfigurationError String
 
-derive instance Eq AdapterError
+derive instance Eq CarrierError
 
-instance Show AdapterError where
+instance Show CarrierError where
   show = case _ of
     AuthenticationError msg -> "AuthenticationError: " <> msg
     NetworkError msg -> "NetworkError: " <> msg
@@ -52,33 +64,37 @@ instance Show AdapterError where
     ParseError msg -> "ParseError: " <> msg
     ConfigurationError msg -> "ConfigurationError: " <> msg
 
--- | 汎用 Gateway アダプター型クラス
+-- | Carrier 型クラス
 -- |
--- | 各外部システムとの接続はこのインターフェースを実装する。
+-- | 外界との接続を担う基底型クラス。
+-- | 各外部システム（Channel）はこのインターフェースを実装する。
 -- | ドメイン固有のメソッド（getStock 等）は派生型クラスで定義。
-class GatewayAdapter a where
-  -- | アダプター名（識別用）
-  adapterName :: a -> String
+class Carrier a where
+  -- | Carrier 名（識別用）
+  carrierName :: a -> String
 
   -- | ヘルスチェック
-  healthCheck :: a -> Aff (Either AdapterError Unit)
+  healthCheck :: a -> Aff (Either CarrierError Unit)
 
 --------------------------------------------------------------------------------
 -- ユーティリティ
 --------------------------------------------------------------------------------
 
 -- | エラーハンドリング
-handleAdapterError :: forall a. AdapterError -> Aff (Either AdapterError a)
-handleAdapterError err = pure $ Left err
+handleCarrierError :: forall a. CarrierError -> Aff (Either CarrierError a)
+handleCarrierError err = pure $ Left err
 
 -- | エクスポネンシャルバックオフでリトライ
+-- |
+-- | 地平線を越える際のネットワークエラーやレート制限に対して
+-- | 指数バックオフでリトライする。
 retryWithBackoff
   :: forall m a
    . MonadAff m
   => Int  -- 最大リトライ回数
   -> Int  -- 初期待機時間（ミリ秒）
-  -> m (Either AdapterError a)
-  -> m (Either AdapterError a)
+  -> m (Either CarrierError a)
+  -> m (Either CarrierError a)
 retryWithBackoff maxRetries initialDelay action = go 0 initialDelay
   where
     go attempt currentDelay
@@ -100,7 +116,7 @@ retryWithBackoff maxRetries initialDelay action = go 0 initialDelay
 foreign import intToNumber :: Int -> Number
 
 -- | レスポンスがリトライ可能か判定
-isRetryable :: AdapterError -> Boolean
+isRetryable :: CarrierError -> Boolean
 isRetryable = case _ of
   NetworkError _ -> true
   RateLimitError _ -> true
