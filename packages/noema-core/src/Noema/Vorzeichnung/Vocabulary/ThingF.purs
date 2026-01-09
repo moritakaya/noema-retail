@@ -18,7 +18,7 @@ module Noema.Vorzeichnung.Vocabulary.ThingF
   , PropertyValue
   , TimeRange
   , ChangeReason(..)
-  , LocusChange
+  , SitusChange
   , PendingIntent
   , ProtentionId(..)
   , ThingSnapshot
@@ -67,7 +67,8 @@ instance showChangeReason :: Show ChangeReason where
   show (Adjustment reason) = "(Adjustment " <> reason <> ")"
 
 -- | 位置変更の記録
-type LocusChange =
+-- | ※ Situs = Topos/Situs モジュールとの一貫性のため locus から改名
+type SitusChange =
   { from :: SubjectId
   , to :: SubjectId
   , reason :: ChangeReason
@@ -95,7 +96,7 @@ type ThingSnapshot =
   { thingId :: ThingId
   , timestamp :: Timestamp
   , properties :: Map PropertyKey PropertyValue
-  , locus :: SubjectId
+  , situs :: SubjectId  -- 包摂する Subject（位置）
   , sedimentId :: SedimentId
   }
 
@@ -103,7 +104,7 @@ type ThingSnapshot =
 type ThingState =
   { thingId :: ThingId
   , properties :: Map PropertyKey PropertyValue
-  , locus :: SubjectId
+  , situs :: SubjectId  -- 包摂する Subject（位置）
   , lastModified :: Timestamp
   , protentions :: Array ProtentionId
   }
@@ -128,9 +129,9 @@ data ThingF i o
   = GetProperty ThingId PropertyKey (i -> Unit) (PropertyValue -> o)
   | SetProperty ThingId PropertyKey (i -> PropertyValue) (SedimentId -> o)
 
-  -- === 位置 (Locus) ===
-  | GetLocus ThingId (i -> Unit) (SubjectId -> o)
-  | RecordLocusChange ThingId (i -> LocusChange) (SedimentId -> o)
+  -- === 位置 (Situs) ===
+  | GetSitus ThingId (i -> Unit) (SubjectId -> o)
+  | RecordSitusChange ThingId (i -> SitusChange) (SedimentId -> o)
 
   -- === 時間 (Temporality) ===
 
@@ -152,8 +153,8 @@ instance functorThingF :: Functor (ThingF i) where
   map f = case _ of
     GetProperty tid key toUnit k -> GetProperty tid key toUnit (f <<< k)
     SetProperty tid key toVal k -> SetProperty tid key toVal (f <<< k)
-    GetLocus tid toUnit k -> GetLocus tid toUnit (f <<< k)
-    RecordLocusChange tid toChange k -> RecordLocusChange tid toChange (f <<< k)
+    GetSitus tid toUnit k -> GetSitus tid toUnit (f <<< k)
+    RecordSitusChange tid toChange k -> RecordSitusChange tid toChange (f <<< k)
     GetRetention tid ts toUnit k -> GetRetention tid ts toUnit (f <<< k)
     GetRetentionRange tid range toUnit k -> GetRetentionRange tid range toUnit (f <<< k)
     GetPrimal tid toUnit k -> GetPrimal tid toUnit (f <<< k)

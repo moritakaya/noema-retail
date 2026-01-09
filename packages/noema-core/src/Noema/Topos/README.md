@@ -137,6 +137,57 @@ data StagingOutcome
 
 判例は将来の Nomos 改訂（立法）に影響を与える。
 
+## Thing と Nomos の関係
+
+### Thing は Nomos 非認識
+
+Thing 自体は Nomos/World を持たない。Subject が World を持ち、
+Thing は Subject に包摂されることで暗黙的に World を継承する。
+
+```
+Subject (SubjectF)
+├── has: SubjectId (= Thing の situs)
+├── has: World (Nomos context)
+└── contains: Thing (via RelationF Contains/Guards)
+    └── Thing (ThingF)
+        ├── has: ThingId
+        ├── has: properties
+        ├── has: situs :: SubjectId (包摂する Subject)
+        └── Nomos 非認識（Subject 経由で継承）
+```
+
+### プロパティ変更と Nomos
+
+Thing のプロパティ変更は Subject の Sedimentation に記録される。
+バリデーションは Cognition 層で Subject の World に基づき実行。
+
+```
+1. Intent: SetProperty thingId propertyKey value
+2. Cognition: Subject の World から PropertySchema を取得
+3. Validation: PropertySchema に基づきバリデーション
+4. Sedimentation: Subject の Sediment に記録（World 付き）
+```
+
+### PropertySchema（Nomos 拡張）
+
+Nomos.Rules に PropertySchema を定義し、Thing プロパティの型制約を規定。
+
+```purescript
+data PropertyType
+  = StringType
+  | NumberType
+  | BooleanType
+  | EnumType (Array String)
+  | JsonType
+
+type PropertySchema = Map PropertyKey PropertyType
+```
+
+Connection 検証時、PropertySchema の互換性も検証：
+- 新しい PropertyKey の追加 → Flat
+- PropertyType の制限強化 → Curved
+- 必須プロパティの追加 → Critical
+
 ## 哲学的基盤
 
 ### Situs（空間座標）

@@ -1,0 +1,50 @@
+name: PureScript Build & Test
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'packages/**/*.purs'
+      - 'spago.yaml'
+      - 'packages/*/spago.yaml'
+  pull_request:
+    paths:
+      - 'packages/**/*.purs'
+      - 'spago.yaml'
+      - 'packages/*/spago.yaml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PureScript
+        uses: purescript-contrib/setup-purescript@main
+        with:
+          purescript: "0.15.x"
+          spago: "0.21.x"
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.spago
+            output
+          key: ${{ runner.os }}-spago-${{ hashFiles('**/spago.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-spago-
+
+      - name: Install dependencies
+        run: spago install
+
+      - name: Build
+        run: spago build
+
+      - name: Test noema-core
+        run: spago test -p noema-core
+
+      - name: Test noema-retail
+        run: spago test -p noema-retail

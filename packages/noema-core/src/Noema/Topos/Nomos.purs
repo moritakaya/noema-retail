@@ -38,6 +38,9 @@ module Noema.Topos.Nomos
     -- * IntentContext
   , IntentContext
   , mkIntentContext
+    -- * PropertySchema（プロパティスキーマ）
+  , PropertyType(..)
+  , PropertySchema
     -- * Nomos（法の構造）
   , Nomos
   , Rules
@@ -51,12 +54,17 @@ module Noema.Topos.Nomos
   , ConnectionType(..)
   , Reason
   , verifyConnection
+  , verifyPropertySchemaConnection
   ) where
 
 import Prelude
+import Data.Foldable (all)
+import Data.Map (Map)
+import Data.Map as Map
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Noema.Topos.Situs (Timestamp)
+import Noema.Vorzeichnung.Vocabulary.ThingF (PropertyKey)
 
 -- ============================================================
 -- NomosVersion
@@ -124,6 +132,40 @@ mkIntentContext origin target =
   }
 
 -- ============================================================
+-- PropertyType（プロパティの型）
+-- ============================================================
+
+-- | プロパティの型
+-- |
+-- | Thing のプロパティに対する型制約を定義。
+-- | Nomos.Rules の propertySchema で使用される。
+data PropertyType
+  = StringType              -- 任意の文字列
+  | NumberType              -- 数値
+  | BooleanType             -- 真偽値
+  | EnumType (Array String) -- 列挙型（許可される値の配列）
+  | JsonType                -- 任意の JSON
+
+derive instance eqPropertyType :: Eq PropertyType
+
+instance showPropertyType :: Show PropertyType where
+  show StringType = "StringType"
+  show NumberType = "NumberType"
+  show BooleanType = "BooleanType"
+  show (EnumType values) = "(EnumType " <> show values <> ")"
+  show JsonType = "JsonType"
+
+-- ============================================================
+-- PropertySchema（プロパティスキーマ）
+-- ============================================================
+
+-- | プロパティスキーマ
+-- |
+-- | PropertyKey ごとの型制約を定義。
+-- | Connection 検証時にスキーマ互換性をチェックする。
+type PropertySchema = Map PropertyKey PropertyType
+
+-- ============================================================
 -- Duration（期間）
 -- ============================================================
 
@@ -154,10 +196,12 @@ mkDuration = Duration
 -- | - schemaVersion: SQLite スキーマのバージョン
 -- | - constraints: CHECK 制約等
 -- | - validations: ビジネスルール（将来は Lean4 で証明）
+-- | - propertySchema: Thing プロパティの型制約
 type Rules =
   { schemaVersion :: String           -- スキーマバージョン
   , constraints :: Array String       -- 制約（SQL CHECK等）
   , validations :: Array String       -- バリデーションルール
+  , propertySchema :: PropertySchema  -- Thing プロパティの型制約
   }
 
 -- ============================================================
@@ -310,3 +354,49 @@ verifyConnection origin target
   | otherwise =
       -- 将来は Lean4 サービスと連携して判定
       Curved "Version mismatch (pending Lean4 verification)"
+
+-- | PropertySchema の互換性を検証
+-- |
+-- | 旧スキーマから新スキーマへの移行が可能かを判定。
+-- |
+-- | ## 判定ルール
+-- |
+-- | - 新しい PropertyKey の追加のみ → Flat
+-- | - PropertyType の制限強化（例: String → Enum）→ Curved
+-- | - 既存 PropertyKey の削除 → Critical
+verifyPropertySchemaConnection :: PropertySchema -> PropertySchema -> ConnectionType
+verifyPropertySchemaConnection oldSchema newSchema =
+  let
+    oldKeys = Map.keys oldSchema
+
+    -- 削除されたキーがあるか
+    hasDeletedKeys = not (all (\k -> Map.member k newSchema) oldKeys)
+
+    -- 型が変更されたキーがあるか
+    hasTypeChanges = not (all checkTypeCompatibility oldKeys)
+
+    checkTypeCompatibility :: PropertyKey -> Boolean
+    checkTypeCompatibility key =
+      case Map.lookup key oldSchema, Map.lookup key newSchema of
+        Just oldType, Just newType -> isTypeCompatible oldType newType
+        Just _, Nothing -> false  -- 削除
+        Nothing, _ -> true        -- 新規追加（問題なし）
+
+    -- 型の互換性チェック（旧型から新型への移行が安全か）
+    isTypeCompatible :: PropertyType -> PropertyType -> Boolean
+    isTypeCompatible old new
+      | old == new = true
+      | otherwise = case old, new of
+          -- JsonType からは何にでも制限可能（Curved だが安全）
+          JsonType, _ -> true
+          -- StringType から EnumType は制限強化（Curved）
+          StringType, EnumType _ -> true
+          -- それ以外の変更は危険
+          _, _ -> false
+  in
+    if hasDeletedKeys then
+      Critical "Property keys deleted from schema"
+    else if hasTypeChanges then
+      Curved "Property types changed in schema"
+    else
+      Flat

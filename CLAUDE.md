@@ -15,7 +15,7 @@
 │                      随伴 F ⊣ U                                 │
 │                                                                 │
 │  Vorzeichnung/          ⊣         Cognition/                   │
-│  ├── FreerArrow.purs              └── Interpretation.purs       │
+│  ├── Intent.purs                  └── Interpretation.purs       │
 │  └── Vocabulary/                                                │
 │      └── InventoryF                                             │
 │           │                              │                      │
@@ -112,7 +112,6 @@ packages/
 │   │   │   │   └── Carrier.purs   # 外部接続の担体
 │   │   │   ├── Vorzeichnung/      # 予描図式（左随伴）
 │   │   │   │   ├── Intent.purs    # Arrow-based Intent
-│   │   │   │   ├── FreerArrow.purs
 │   │   │   │   ├── Combinators.purs
 │   │   │   │   └── Vocabulary/    # AVDC 語彙
 │   │   │   │       ├── SubjectF.purs
@@ -379,6 +378,47 @@ data StagingOutcome
 Thing 自体は DO ではない。Subject が Thing を「包摂」する。
 - Thing の同一性 = 包摂する Subject の id
 - Thing の状態 = Sediment の積分値
+
+### Thing の設計原則
+
+1. **situs（位置）**: Thing は Subject に包摂され、`situs :: SubjectId` で参照
+   - ※ 旧名称 `locus` は `situs` に統一（Topos/Situs モジュールとの一貫性）
+2. **Nomos 非認識**: Thing 自体は Nomos/World を持たない。Subject の World で解釈
+   - プロパティ変更は Subject の Sedimentation に記録
+   - バリデーションは Cognition 層で Subject の World に基づき実行
+3. **プロパティスキーマ**: Nomos.Rules に PropertySchema を定義
+   - PropertyKey ごとの型制約を Nomos で規定
+   - Connection 検証でスキーマ互換性をチェック
+4. **識別子設計**:
+   - ThingId = 内部識別子（UUID）
+   - SKU/JAN = PropertyKey として格納（検索用インデックス付き）
+   - SKU → ThingId のマッピングは実装層で対応
+
+### PropertySchema（Nomos 拡張）
+
+```purescript
+-- Nomos.Rules に追加
+data PropertyType
+  = StringType
+  | NumberType
+  | BooleanType
+  | EnumType (Array String)
+  | JsonType
+
+type PropertySchema = Map PropertyKey PropertyType
+
+type Rules =
+  { schemaVersion :: String
+  , constraints :: Array String
+  , validations :: Array String
+  , propertySchema :: PropertySchema  -- Thing プロパティの型制約
+  }
+```
+
+Connection 検証時、PropertySchema の互換性も検証される。
+- 新しい PropertyKey の追加 → Flat
+- PropertyType の制限強化 → Curved（附則で経過措置を定義）
+- 必須プロパティの追加 → Critical
 
 ## 四つの語彙
 

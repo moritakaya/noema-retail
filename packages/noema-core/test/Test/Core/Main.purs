@@ -8,6 +8,8 @@ import Test.Laws.Arrow as Arrow
 import Test.Combinators as Combinators
 import Test.Factum as Factum
 import Test.Nomos as Nomos
+import Test.ThingF as ThingF
+import Test.Precedent as Precedent
 
 main :: Effect Unit
 main = do
@@ -22,6 +24,10 @@ main = do
   Factum.main
   log ""
   Nomos.main
+  log ""
+  ThingF.main
+  log ""
+  Precedent.main
   log ""
   log "╔════════════════════════════════════════════════════════════╗"
   log "║           Noema Core Test Suite Complete                   ║"

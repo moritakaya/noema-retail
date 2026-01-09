@@ -26,8 +26,8 @@ module Noema.Vorzeichnung.Vocabulary.Constructors
     -- * Thing constructors
   , getProperty
   , setProperty
-  , getLocus
-  , recordLocusChange
+  , getSitus
+  , recordSitusChange
   , getRetention
   , getRetentionRange
   , getPrimal
@@ -115,13 +115,13 @@ getProperty tid key = liftEffect (inThing (T.GetProperty tid key identity identi
 setProperty :: ThingId -> T.PropertyKey -> Intent (NoemaF T.PropertyValue) T.PropertyValue SedimentId
 setProperty tid key = liftEffect (inThing (T.SetProperty tid key identity identity))
 
--- | Thing の位置を取得
-getLocus :: ThingId -> Intent (NoemaF Unit) Unit SubjectId
-getLocus tid = liftEffect (inThing (T.GetLocus tid identity identity))
+-- | Thing の位置（situs）を取得
+getSitus :: ThingId -> Intent (NoemaF Unit) Unit SubjectId
+getSitus tid = liftEffect (inThing (T.GetSitus tid identity identity))
 
 -- | 位置変更を記録
-recordLocusChange :: ThingId -> Intent (NoemaF T.LocusChange) T.LocusChange SedimentId
-recordLocusChange tid = liftEffect (inThing (T.RecordLocusChange tid identity identity))
+recordSitusChange :: ThingId -> Intent (NoemaF T.SitusChange) T.SitusChange SedimentId
+recordSitusChange tid = liftEffect (inThing (T.RecordSitusChange tid identity identity))
 
 -- | 過去の状態（把持）を取得
 getRetention :: ThingId -> Timestamp -> Intent (NoemaF Unit) Unit T.ThingSnapshot

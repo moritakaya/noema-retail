@@ -10,16 +10,16 @@ name: TLA+ Verification
 
 on:
   push:
-    branches: [main, feature/*]
+    branches: [master, feature/*]
     paths:
-      - 'src/Noema/Vorzeichnung/**'
-      - 'src/Noema/Presheaf/**'
+      - 'packages/*/src/Noema/Vorzeichnung/**'
+      - 'packages/*/src/Noema/Topos/**'
       - 'tlaplus/**'
   pull_request:
-    branches: [main]
+    branches: [master]
     paths:
-      - 'src/Noema/Vorzeichnung/**'
-      - 'src/Noema/Presheaf/**'
+      - 'packages/*/src/Noema/Vorzeichnung/**'
+      - 'packages/*/src/Noema/Topos/**'
       - 'tlaplus/**'
   workflow_dispatch:
     inputs:
@@ -107,8 +107,6 @@ jobs:
         spec:
           - name: Inventory
             config: Inventory.cfg
-          - name: Presheaf
-            config: Presheaf.cfg
     
     steps:
       - name: Checkout
