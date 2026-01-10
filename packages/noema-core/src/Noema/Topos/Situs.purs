@@ -34,6 +34,7 @@ module Noema.Topos.Situs
     -- * Relation（関係）
   , RelationId(..)
   , mkRelationId
+  , unwrapRelationId
     -- * Sediment（沈殿記録）
   , SedimentId(..)
   , mkSedimentId
@@ -154,6 +155,9 @@ derive newtype instance showRelationId :: Show RelationId
 
 mkRelationId :: String -> RelationId
 mkRelationId = RelationId
+
+unwrapRelationId :: RelationId -> String
+unwrapRelationId = unwrap
 
 -- ============================================================
 -- SedimentId: 沈殿記録
