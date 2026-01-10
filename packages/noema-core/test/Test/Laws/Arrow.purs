@@ -50,7 +50,7 @@ derive instance functorTestF :: Functor TestF
 
 -- | TestF の Identity Interpretation
 -- |
--- | 純粋な計算として実行
+-- | 純粋な計算として立証（witnessing）
 testInterpretation :: TestF ~> Identity
 testInterpretation = case _ of
   Pure a -> Identity a
@@ -58,9 +58,12 @@ testInterpretation = case _ of
   Double n k -> Identity (k (n * 2))
   Concat s1 s2 k -> Identity (k (s1 <> s2))
 
--- | Intent を純粋に実行
-runTest :: forall a b. Intent' TestF a b -> a -> b
-runTest intent input = unwrap (realizeIntent testInterpretation intent input)
+-- | Intent を立証する（witnessing）
+-- |
+-- | テストは Arrow 法則の真理を「立証」する行為。
+-- | Husserl の Bezeugung（証言）に対応。
+witnessIntent :: forall a b. Intent' TestF a b -> a -> b
+witnessIntent intent input = unwrap (realizeIntent testInterpretation intent input)
 
 -- ============================================================
 -- Arrow 法則テスト
@@ -84,7 +87,7 @@ law1_arrId = do
     inputs = [0, 1, 42, -10, 999]
     
     -- 両辺を比較
-    results = map (\i -> runTest left i == runTest right i) inputs
+    results = map (\i -> witnessIntent left i == witnessIntent right i) inputs
   
   pure (and results)
 
@@ -109,7 +112,7 @@ law2_arrCompose = do
     right = arr g <<< arr f
     
     inputs = [0, 1, 5, -3, 100]
-    results = map (\i -> runTest left i == runTest right i) inputs
+    results = map (\i -> witnessIntent left i == witnessIntent right i) inputs
   
   pure (and results)
 
@@ -141,7 +144,7 @@ law3_firstArr = do
       , Tuple 100 ""
       ]
     
-    results = map (\i -> runTest left i == runTest right i) inputs
+    results = map (\i -> witnessIntent left i == witnessIntent right i) inputs
   
   pure (and results)
 
@@ -171,7 +174,7 @@ law4_firstCompose = do
       , Tuple 10 "z"
       ]
     
-    results = map (\i -> runTest left i == runTest right i) inputs
+    results = map (\i -> witnessIntent left i == witnessIntent right i) inputs
   
   pure (and results)
 
@@ -198,7 +201,7 @@ law5_firstFst = do
       , Tuple (-3) "c"
       ]
     
-    results = map (\i -> runTest left i == runTest right i) inputs
+    results = map (\i -> witnessIntent left i == witnessIntent right i) inputs
   
   pure (and results)
 
@@ -232,7 +235,7 @@ law6_firstSwap = do
       , Tuple (-1) "test"
       ]
     
-    results = map (\i -> runTest left i == runTest right i) inputs
+    results = map (\i -> witnessIntent left i == witnessIntent right i) inputs
   
   pure (and results)
 
@@ -263,7 +266,7 @@ law7_assoc = do
       , Tuple (Tuple (-1) "") true
       ]
     
-    results = map (\i -> runTest left i == runTest right i) inputs
+    results = map (\i -> witnessIntent left i == witnessIntent right i) inputs
   
   pure (and results)
 
@@ -295,7 +298,7 @@ law_second = do
       , Tuple "" (-5)
       ]
     
-    results = map (\i -> runTest left i == runTest right i) inputs
+    results = map (\i -> witnessIntent left i == witnessIntent right i) inputs
   
   pure (and results)
 
@@ -322,7 +325,7 @@ law_split = do
       , Tuple 5 ""
       ]
     
-    results = map (\i -> runTest left i == runTest right i) inputs
+    results = map (\i -> witnessIntent left i == witnessIntent right i) inputs
   
   pure (and results)
 
@@ -349,7 +352,7 @@ law_fanout = do
     
     inputs = [0, 1, 5, -3]
     
-    results = map (\i -> runTest left i == runTest right i) inputs
+    results = map (\i -> witnessIntent left i == witnessIntent right i) inputs
   
   pure (and results)
 

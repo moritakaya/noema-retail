@@ -27,7 +27,7 @@
 -- |
 -- | ```purescript
 -- | env <- recognize $ mkRelationEnv sql
--- | result <- runRelationIntent env (getRelationsFrom subjectId Owns) unit
+-- | result <- realizeRelationIntent env (getRelationsFrom subjectId Owns) unit
 -- | -- result :: Factum (Array Relation)
 -- | ```
 module Noema.Cognition.RelationInterpretation

@@ -34,7 +34,7 @@
 -- |
 -- | ```purescript
 -- | env <- recognize $ mkThingEnv sql
--- | result <- runThingIntent env (getProperty thingId key) unit
+-- | result <- realizeThingIntent env (getProperty thingId key) unit
 -- | -- result :: Factum PropertyValue
 -- | ```
 module Noema.Cognition.ThingInterpretation

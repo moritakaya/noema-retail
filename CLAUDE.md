@@ -287,6 +287,8 @@ Noema は既存の設計手法（DDD, Clean Architecture 等）に依存しな�
 | InventoryCarrier | 在庫用 Carrier（noema-retail） | Inventory Adapter |
 | **collapse** | Factum → Effect（忘却） | unsafePerformEffect |
 | **recognize** | Effect → Factum（認識） | liftEffect |
+| **realizeIntent** | Intent を充実化する（本番用） | Erfüllung（充実化） |
+| **witnessIntent** | Intent を立証する（テスト用） | Bezeugung（証言） |
 
 ### 設計書更新のトリガー
 

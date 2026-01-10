@@ -90,9 +90,12 @@ defaultStock tid sid =
   , available: Quantity 0
   }
 
--- | Intent を純粋に実行
-runInventoryTest :: forall a b. InventoryIntent a b -> a -> b
-runInventoryTest intent input = unwrap (realizeIntent mockInterpretationPure intent input)
+-- | InventoryIntent を立証する（witnessing）
+-- |
+-- | テストは InventoryF の Arrow 法則を「立証」する行為。
+-- | Husserl の Bezeugung（証言）に対応。
+witnessInventoryIntent :: forall a b. InventoryIntent a b -> a -> b
+witnessInventoryIntent intent input = unwrap (realizeIntent mockInterpretationPure intent input)
 
 -- ============================================================
 -- Arrow 法則テスト（InventoryF）
@@ -113,8 +116,8 @@ testLaw1 = do
     right :: InventoryIntent Unit StockInfo
     right = getStock tid sid >>> identity
 
-    resultL = runInventoryTest left unit
-    resultR = runInventoryTest right unit
+    resultL = witnessInventoryIntent left unit
+    resultR = witnessInventoryIntent right unit
 
   pure (resultL.quantity == resultR.quantity)
 
@@ -139,8 +142,8 @@ testLaw2 = do
     right :: InventoryIntent Unit Int
     right = getStock tid sid >>> arr f >>> arr g
 
-    resultL = runInventoryTest left unit
-    resultR = runInventoryTest right unit
+    resultL = witnessInventoryIntent left unit
+    resultR = witnessInventoryIntent right unit
 
   pure (resultL == resultR)
 
@@ -167,8 +170,8 @@ testLaw4 = do
 
     input = Tuple unit "context"
 
-    resultL = runInventoryTest left input
-    resultR = runInventoryTest right input
+    resultL = witnessInventoryIntent left input
+    resultR = witnessInventoryIntent right input
 
   pure (resultL == resultR)
 
@@ -192,8 +195,8 @@ testLaw5 = do
 
     input = Tuple unit "ignored"
 
-    resultL = runInventoryTest left input
-    resultR = runInventoryTest right input
+    resultL = witnessInventoryIntent left input
+    resultR = witnessInventoryIntent right input
 
   pure (resultL.quantity == resultR.quantity)
 
@@ -215,7 +218,7 @@ testFanout = do
     combined :: InventoryIntent Unit (Tuple StockInfo StockInfo)
     combined = f &&& g
 
-    result = runInventoryTest combined unit
+    result = witnessInventoryIntent combined unit
 
     (Tuple info1 info2) = result
 
@@ -240,7 +243,7 @@ testPipeline = do
       >>> arr _.quantity
       >>> arr (\(Quantity q) -> q * 2)
 
-    result = runInventoryTest pipeline unit
+    result = witnessInventoryIntent pipeline unit
 
   -- 100 * 2 = 200
   pure (result == 200)
@@ -258,7 +261,7 @@ testParallel = do
       getStock tid sid
       >>> (arr _.quantity &&& arr _.reserved)
 
-    (Tuple qty reserved) = runInventoryTest getQuantities unit
+    (Tuple qty reserved) = witnessInventoryIntent getQuantities unit
 
   -- quantity = 100, reserved = 10
   pure (qty == Quantity 100 && reserved == Quantity 10)
@@ -267,9 +270,11 @@ testParallel = do
 -- テスト実行
 -- ============================================================
 
--- | InventoryF テストを実行
-runInventoryTests :: Effect Unit
-runInventoryTests = do
+-- | InventoryF Arrow 法則を立証する
+-- |
+-- | Arrow 法則が InventoryF において成立することを「立証」する。
+witnessInventoryLaws :: Effect Unit
+witnessInventoryLaws = do
   log "=== InventoryF Arrow Laws Test ==="
   log ""
   

@@ -19,8 +19,8 @@ main = do
   log "╚════════════════════════════════════════════════════════════╝"
   log ""
 
-  -- InventoryF を使った Arrow 法則
-  ArrowInventory.runInventoryTests
+  -- InventoryF を使った Arrow 法則を立証
+  ArrowInventory.witnessInventoryLaws
 
   log ""
 

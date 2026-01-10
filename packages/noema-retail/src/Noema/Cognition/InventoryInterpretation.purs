@@ -30,7 +30,7 @@
 -- |
 -- | ```purescript
 -- | env <- recognize $ mkInventoryEnv sql
--- | result <- runInventoryIntent env someIntent unit
+-- | result <- realizeInventoryIntent env someIntent unit
 -- | -- result :: Factum SomeResult
 -- | ```
 module Noema.Cognition.InventoryInterpretation

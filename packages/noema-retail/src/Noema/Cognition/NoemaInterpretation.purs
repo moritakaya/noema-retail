@@ -21,7 +21,7 @@
 -- |
 -- | ```purescript
 -- | env <- recognize $ mkNoemaEnv sql
--- | result <- runNoemaIntent env (liftSubject (createSubject init)) unit
+-- | result <- realizeNoemaIntent env (liftSubject (createSubject init)) unit
 -- | -- result :: Factum SubjectId
 -- | ```
 module Noema.Cognition.NoemaInterpretation

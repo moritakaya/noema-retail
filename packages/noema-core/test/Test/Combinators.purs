@@ -57,9 +57,12 @@ testInterpretation = case _ of
   GetValue k -> Identity (k 42)  -- 固定値を返す
   PutValue _ a -> Identity a     -- 値を無視
 
--- | Intent を純粋に実行
-runTest :: forall a b. Intent' TestF a b -> a -> b
-runTest intent input = unwrap (realizeIntent testInterpretation intent input)
+-- | Intent を立証する（witnessing）
+-- |
+-- | テストは Combinators の正しさを「立証」する行為。
+-- | Husserl の Bezeugung（証言）に対応。
+witnessIntent :: forall a b. Intent' TestF a b -> a -> b
+witnessIntent intent input = unwrap (realizeIntent testInterpretation intent input)
 
 -- ============================================================
 -- Basic combinators tests
@@ -72,7 +75,7 @@ test_eff = do
     intent :: Intent' TestF String Int
     intent = eff_ (GetValue identity)
 
-    result = runTest intent "ignored input"
+    result = witnessIntent intent "ignored input"
 
   pure (result == 42)
 
@@ -84,9 +87,9 @@ test_constant = do
     intent = constant "hello"
 
     results =
-      [ runTest intent 0 == "hello"
-      , runTest intent 999 == "hello"
-      , runTest intent (-1) == "hello"
+      [ witnessIntent intent 0 == "hello"
+      , witnessIntent intent 999 == "hello"
+      , witnessIntent intent (-1) == "hello"
       ]
 
   pure (and results)
@@ -99,8 +102,8 @@ test_ignore = do
     intent = ignore
 
     results =
-      [ runTest intent "anything" == unit
-      , runTest intent "" == unit
+      [ witnessIntent intent "anything" == unit
+      , witnessIntent intent "" == unit
       ]
 
   pure (and results)
@@ -117,9 +120,9 @@ test_dup = do
     intent = dup
 
     results =
-      [ runTest intent 5 == Tuple 5 5
-      , runTest intent 0 == Tuple 0 0
-      , runTest intent (-3) == Tuple (-3) (-3)
+      [ witnessIntent intent 5 == Tuple 5 5
+      , witnessIntent intent 0 == Tuple 0 0
+      , witnessIntent intent (-3) == Tuple (-3) (-3)
       ]
 
   pure (and results)
@@ -132,8 +135,8 @@ test_swap = do
     intent = swap
 
     results =
-      [ runTest intent (Tuple 1 "a") == Tuple "a" 1
-      , runTest intent (Tuple 0 "") == Tuple "" 0
+      [ witnessIntent intent (Tuple 1 "a") == Tuple "a" 1
+      , witnessIntent intent (Tuple 0 "") == Tuple "" 0
       ]
 
   pure (and results)
@@ -147,14 +150,14 @@ test_assoc = do
     roundTrip = assocR >>> assocL
 
     input = Tuple (Tuple 1 "a") true
-    result = runTest roundTrip input
+    result = witnessIntent roundTrip input
 
     -- assocL >>> assocR = identity
     roundTrip2 :: Intent' TestF (Tuple Int (Tuple String Boolean)) (Tuple Int (Tuple String Boolean))
     roundTrip2 = assocL >>> assocR
 
     input2 = Tuple 1 (Tuple "a" true)
-    result2 = runTest roundTrip2 input2
+    result2 = witnessIntent roundTrip2 input2
 
   pure (result == input && result2 == input2)
 
@@ -168,7 +171,7 @@ test_assocL = do
     input = Tuple 1 (Tuple "a" true)
     expected = Tuple (Tuple 1 "a") true
 
-  pure (runTest intent input == expected)
+  pure (witnessIntent intent input == expected)
 
 -- | assocR の正しい変換
 test_assocR :: Effect Boolean
@@ -180,7 +183,7 @@ test_assocR = do
     input = Tuple (Tuple 1 "a") true
     expected = Tuple 1 (Tuple "a" true)
 
-  pure (runTest intent input == expected)
+  pure (witnessIntent intent input == expected)
 
 -- ============================================================
 -- Conditional tests (without branching!)
@@ -194,10 +197,10 @@ test_guard = do
     intent = guard (_ > 0)
 
     results =
-      [ runTest intent 5 == Just 5
-      , runTest intent 1 == Just 1
-      , runTest intent 0 == Nothing
-      , runTest intent (-1) == Nothing
+      [ witnessIntent intent 5 == Just 5
+      , witnessIntent intent 1 == Just 1
+      , witnessIntent intent 0 == Nothing
+      , witnessIntent intent (-1) == Nothing
       ]
 
   pure (and results)
@@ -210,9 +213,9 @@ test_assert = do
     intent = assert (_ > 0) "must be positive"
 
     results =
-      [ runTest intent 5 == Right 5
-      , runTest intent 0 == Left "must be positive"
-      , runTest intent (-1) == Left "must be positive"
+      [ witnessIntent intent 5 == Right 5
+      , witnessIntent intent 0 == Left "must be positive"
+      , witnessIntent intent (-1) == Left "must be positive"
       ]
 
   pure (and results)
@@ -240,7 +243,7 @@ test_andThen = do
     right = f >>> g
 
     inputs = [0, 1, 5, -3]
-    results = map (\i -> runTest left i == runTest right i) inputs
+    results = map (\i -> witnessIntent left i == witnessIntent right i) inputs
 
   pure (and results)
 
@@ -262,8 +265,8 @@ test_both = do
     intent = both f g
 
     results =
-      [ runTest intent 5 == Tuple 6 "5"
-      , runTest intent 0 == Tuple 1 "0"
+      [ witnessIntent intent 5 == Tuple 6 "5"
+      , witnessIntent intent 0 == Tuple 1 "0"
       ]
 
   pure (and results)
@@ -287,7 +290,7 @@ test_fanout = do
     right = f &&& g
 
     inputs = [0, 1, 5, -3]
-    results = map (\i -> runTest left i == runTest right i) inputs
+    results = map (\i -> witnessIntent left i == witnessIntent right i) inputs
 
   pure (and results)
 
@@ -310,7 +313,7 @@ test_both_definition = do
     right = dup >>> (f *** g)
 
     inputs = [0, 1, 5, -3]
-    results = map (\i -> runTest left i == runTest right i) inputs
+    results = map (\i -> witnessIntent left i == witnessIntent right i) inputs
 
   pure (and results)
 

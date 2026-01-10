@@ -26,7 +26,7 @@
 -- |
 -- | ```purescript
 -- | env <- recognize $ mkContractEnv sql
--- | result <- runContractIntent env (getContract cid) unit
+-- | result <- realizeContractIntent env (getContract cid) unit
 -- | -- result :: Factum ContractState
 -- | ```
 module Noema.Cognition.ContractInterpretation

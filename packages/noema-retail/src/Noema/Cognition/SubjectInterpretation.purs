@@ -27,7 +27,7 @@
 -- |
 -- | ```purescript
 -- | env <- recognize $ mkSubjectEnv sql
--- | result <- runSubjectIntent env (getSubject sid) unit
+-- | result <- realizeSubjectIntent env (getSubject sid) unit
 -- | -- result :: Factum SubjectState
 -- | ```
 module Noema.Cognition.SubjectInterpretation
