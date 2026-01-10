@@ -19,7 +19,7 @@
 -- |
 -- | > 実行とは忘却である。
 module Noema.Cognition.StorageInterpretation
-  ( runStorageIntent
+  ( realizeStorageIntent
   , StorageEnv
   , SqlStorage
   , mkStorageEnv
@@ -32,7 +32,7 @@ import Data.Maybe (Maybe)
 import Foreign (Foreign)
 
 import Noema.Vorzeichnung.Vocabulary.StorageF (StorageF(..), StorageIntent)
-import Noema.Cognition.Interpretation (Interpretation, runInterpretation)
+import Noema.Cognition.Interpretation (Interpretation, realizeInterpretation)
 import Noema.Sedimentation.Factum (Factum)
 
 -- ============================================================
@@ -106,26 +106,30 @@ interpretStorageF env = case _ of
     pure next
 
 -- ============================================================
--- Intent 実行
+-- Intent の実現（Realization）
 -- ============================================================
 
--- | StorageIntent を Factum で実行する
+-- | StorageIntent を実現する
 -- |
--- | Arrow 版では入力値を明示的に渡す必要がある。
+-- | ## 哲学的基盤
+-- |
+-- | Husserl の「充実化」(Erfüllung):
+-- | - 空虚な意志（Intent）が充実した事実（Factum）へと移行する過程
+-- | - 「実行とは忘却である」：構造は消え、事実のみが残る
 -- |
 -- | 使用例:
 -- | ```purescript
--- | result <- runStorageIntent env (querySql "SELECT * FROM users") unit
+-- | result <- realizeStorageIntent env (querySql "SELECT * FROM users") unit
 -- | -- result :: Factum (Array Foreign)
 -- |
 -- | -- エントリーポイントで Factum → Effect に変換
 -- | handleRequest req = collapse do
--- |   result <- runStorageIntent env intent unit
+-- |   result <- realizeStorageIntent env intent unit
 -- |   ...
 -- | ```
-runStorageIntent :: forall a b. StorageEnv -> StorageIntent a b -> a -> Factum b
-runStorageIntent env intent input =
-  runInterpretation (interpretStorageF env) intent input
+realizeStorageIntent :: forall a b. StorageEnv -> StorageIntent a b -> a -> Factum b
+realizeStorageIntent env intent input =
+  realizeInterpretation (interpretStorageF env) intent input
 
 -- ============================================================
 -- FFI 関数

@@ -48,7 +48,7 @@ import Noema.Vorzeichnung.Vocabulary.InventoryF
   , reserveStock
   , releaseReservation
   )
-import Noema.Cognition.InventoryInterpretation (InventoryEnv, mkInventoryEnv, initializeSchema, runInventoryIntent, exec)
+import Noema.Cognition.InventoryInterpretation (InventoryEnv, mkInventoryEnv, initializeSchema, realizeInventoryIntent, exec)
 import Noema.Sedimentation.Factum (collapse, recognize)
 import Platform.Cloudflare.FFI.DurableObject (DurableObjectState, DurableObjectStorage, getStorage, getSql)
 import Platform.Cloudflare.FFI.Request (Request, url, method)
@@ -159,20 +159,20 @@ handleAlarm state = do
 
 -- | 各ルートハンドラーでは:
 -- | 1. Intent を構築
--- | 2. runInventoryIntent で Factum を取得
+-- | 2. realizeInventoryIntent で Factum を取得
 -- | 3. collapse で Effect に崩落（外界との境界）
 
 handleGetInventory :: InventoryAttractorState -> ThingId -> SubjectId -> Effect Response
 handleGetInventory state productId subjectId = collapse do
   let intent = getStock productId subjectId
-  result <- runInventoryIntent state.env intent unit
+  result <- realizeInventoryIntent state.env intent unit
   recognize $ jsonResponse $ stockInfoToJson result
 
 handleGetInventoryByProduct :: InventoryAttractorState -> ThingId -> Effect Response
 handleGetInventoryByProduct state productId = collapse do
   -- 新しい API では subject が必須のため、デフォルト subject を使用
   let intent = getStock productId (mkSubjectId "default")
-  result <- runInventoryIntent state.env intent unit
+  result <- realizeInventoryIntent state.env intent unit
   recognize $ jsonResponse [ stockInfoToJson result ]
 
 handleCreateInventory :: InventoryAttractorState -> Request -> Effect Response
@@ -182,10 +182,10 @@ handleCreateInventory state _req = collapse do
       subjectId = mkSubjectId "default"
       quantity = Quantity 0
   let intent = setStock productId subjectId quantity
-  _ <- runInventoryIntent state.env intent unit
+  _ <- realizeInventoryIntent state.env intent unit
   -- setStock は Unit を返すため、作成後に取得
   let getIntent = getStock productId subjectId
-  result <- runInventoryIntent state.env getIntent unit
+  result <- realizeInventoryIntent state.env getIntent unit
   recognize $ jsonResponse $ stockInfoToJson result
 
 handleAdjustStock :: InventoryAttractorState -> Request -> Effect Response
@@ -195,10 +195,10 @@ handleAdjustStock state _req = collapse do
       subjectId = mkSubjectId "default"
       delta = QuantityDelta 0
   let intent = adjustStock productId subjectId delta
-  _newQty <- runInventoryIntent state.env intent unit
+  _newQty <- realizeInventoryIntent state.env intent unit
   -- adjustStock は新しい Quantity を返す。StockInfo として取得して返す
   let getIntent = getStock productId subjectId
-  stockInfo <- runInventoryIntent state.env getIntent unit
+  stockInfo <- realizeInventoryIntent state.env getIntent unit
   recognize $ jsonResponse $ stockInfoToJson stockInfo
 
 handleReserveStock :: InventoryAttractorState -> Request -> Effect Response
@@ -208,7 +208,7 @@ handleReserveStock state _req = collapse do
       subjectId = mkSubjectId "default"
       quantity = Quantity 1
   let intent = reserveStock productId subjectId quantity
-  result <- runInventoryIntent state.env intent unit
+  result <- realizeInventoryIntent state.env intent unit
   if result
     then recognize $ jsonResponse { success: true, message: "Reserved successfully" }
     else recognize $ errorResponse 400 "Insufficient stock"
@@ -219,7 +219,7 @@ handleReleaseReservation state reservationId = collapse do
   let productId = ThingId "default"
       subjectId = mkSubjectId "default"
   let intent = releaseReservation productId subjectId reservationId
-  _ <- runInventoryIntent state.env intent unit
+  _ <- realizeInventoryIntent state.env intent unit
   recognize $ jsonResponse { success: true }
 
 handleGetSyncStatus :: InventoryAttractorState -> ThingId -> Effect Response

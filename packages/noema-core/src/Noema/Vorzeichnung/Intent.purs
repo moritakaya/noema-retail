@@ -16,12 +16,19 @@
 -- | Intent 内部では存在型を使って単項関手として扱う。
 -- | これにより、PureScript の型システムの制約内で Arrow を実現する。
 -- |
+-- | ## 哲学的基盤: realizeIntent
+-- |
+-- | `realizeIntent` は Husserl の「充実化」(Erfüllung) に対応する。
+-- | - 意志（可能性）を事実（現実）へと変換する
+-- | - "run" は技術的・手続き的な語彙
+-- | - "realize" は現象学的語彙（可能性を現実化する）
+-- |
 -- | ## unsafeCoerce の使用について
 -- |
 -- | このモジュールには2箇所の unsafeCoerce がある：
 -- |
--- | 1. `first` 関数（Arrow インスタンス, line 131）
--- | 2. `runIntent` 関数（Par ケース, line 215）
+-- | 1. `first` 関数（Arrow インスタンス）
+-- | 2. `realizeIntent` 関数（Par ケース）
 -- |
 -- | ### 安全性の保証
 -- |
@@ -30,7 +37,7 @@
 -- | - `Par` コンストラクタは `first` 関数経由でのみ構築される
 -- | - `first :: Intent f a b -> Intent f (Tuple a c) (Tuple b c)`
 -- | - 存在型 `Exists (ParF f a b)` が型関係を隠蔽するため unsafeCoerce が必要
--- | - `runIntent` は `Par` の構築時に確立された型関係を復元する
+-- | - `realizeIntent` は `Par` の構築時に確立された型関係を復元する
 -- |
 -- | ### なぜ unsafeCoerce が必要か
 -- |
@@ -58,8 +65,8 @@ module Noema.Vorzeichnung.Intent
   , liftEffectWith
   , arrIntent
   , mkIntent
-    -- * Running
-  , runIntent
+    -- * Realization（実現）
+  , realizeIntent
   , hoistIntent
     -- * Category/Arrow re-exports
   , module CC
@@ -203,39 +210,48 @@ liftEffectWith :: forall f a b x. f x -> (x -> b) -> Intent f a b
 liftEffectWith fx post = Intent (Eff (mkExists (EffF { effect: fx, post: post })))
 
 -- ============================================================
--- Running Intent
+-- Realization（実現）: 意志を事実へ変換
 -- ============================================================
 
--- | Intent を実行する
+-- | Intent を実現する
 -- |
--- | Handler（自然変換 f ~> m）を用いて Intent を解釈する。
+-- | Interpretation（自然変換 f ~> m）を用いて Intent を解釈し、
+-- | 意志（可能性）を事実（現実）へと変換する。
 -- |
--- | Arrow 準同型性:
--- |   runIntent h (f >>> g) ≡ \a -> runIntent h f a >>= runIntent h g
--- |   runIntent h (arr f) ≡ pure <<< f
--- |   runIntent h (first f) ≡ \(a, c) -> (, c) <$> runIntent h f a
-runIntent
+-- | ## 哲学的基盤
+-- |
+-- | Husserl の「充実化」(Erfüllung):
+-- | - 空虚な意志（Intent）が充実した事実（Factum）へと移行する過程
+-- | - 「実行とは忘却である」：構造は消え、事実のみが残る
+-- |
+-- | ## Arrow 準同型性
+-- |
+-- | 以下の等式が成り立つ：
+-- |   realizeIntent h (f >>> g) ≡ \a -> realizeIntent h f a >>= realizeIntent h g
+-- |   realizeIntent h (arr f) ≡ pure <<< f
+-- |   realizeIntent h (first f) ≡ \(a, c) -> (, c) <$> realizeIntent h f a
+realizeIntent
   :: forall f m a b
    . MonadRec m
   => (forall x. f x -> m x)
   -> Intent f a b
   -> (a -> m b)
-runIntent handler (Intent intent) = case intent of
-  Arr f -> 
+realizeIntent interpretation (Intent intent) = case intent of
+  Arr f ->
     pure <<< f
-  
-  Eff ex -> 
+
+  Eff ex ->
     runExists (\(EffF { effect, post }) -> \_ -> do
-      x <- handler effect
+      x <- interpretation effect
       pure (post x)
     ) ex
-  
+
   Seq ex ->
     runExists (\(SeqF { fst: f, snd: g }) -> \a -> do
-      x <- runIntent handler f a
-      runIntent handler g x
+      x <- realizeIntent interpretation f a
+      realizeIntent interpretation g x
     ) ex
-  
+
   Par ex ->
     -- Note: Type safety is ensured by the construction of Intent via `first`
     -- The existential hides the tuple structure (Tuple a' c -> Tuple b' c),
@@ -243,7 +259,7 @@ runIntent handler (Intent intent) = case intent of
     -- We use unsafeCoerce because PureScript can't verify this relationship.
     runExists (\(ParF { inner }) ->
       unsafeCoerce (\(Tuple a' c) -> do
-        b' <- runIntent handler inner a'
+        b' <- realizeIntent interpretation inner a'
         pure (Tuple b' c))
     ) ex
 

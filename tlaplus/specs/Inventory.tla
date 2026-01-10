@@ -12,7 +12,7 @@
 \*   liftEffect op ↔  Op(vars, vars')
 \*
 \* ArrowChoice is NOT supported (no branching in Intent)
-\* Branching is handled at the Handler (Cognition) level
+\* Branching is handled at the Interpretation (Cognition) level
 
 EXTENDS Integers, Sequences, FiniteSets, TLC
 
@@ -303,6 +303,6 @@ StateConstraint ==
 \*
 \* ArrowChoice is NOT supported:
 \*   No left/right operations in Intent
-\*   Branching is delegated to Handler (Cognition)
+\*   Branching is delegated to Interpretation (Cognition)
 
 ================================================================================

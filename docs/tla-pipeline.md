@@ -160,9 +160,9 @@ State 3: stock = [<<"SKU-001", "LOC-001">> |-> -1] (AdjustStock)  ← 違反!
 
 ### 修正アプローチ
 
-1. **Handler にガードを追加**
+1. **Interpretation にガードを追加**
    ```purescript
-   handleAdjust (AdjustStock tid sid delta k) = do
+   interpretAdjust (AdjustStock tid sid delta k) = do
      current <- readStock tid sid
      if unwrap current + unwrap delta >= 0
        then do
@@ -192,14 +192,14 @@ badIntent = do
 ```
 
 ```purescript
--- ✅ 推奨: Handler での分岐
+-- ✅ 推奨: Interpretation での分岐
 goodIntent = getStock tid sid >>> arr _.quantity
 
--- Handler
-handleWithValidation = case _ of
+-- Interpretation
+interpretWithValidation = case _ of
   GetStock tid sid k -> do
     info <- getStockFromDB tid sid
-    -- 分岐は Handler の責務
+    -- 分岐は Interpretation の責務
     if info.available > 0
       then ...
       else ...

@@ -23,6 +23,7 @@
 -- | - 複数の Intent をバッチ処理前にステージング
 -- | - トランザクション境界の管理
 -- | - 投機的実行と確定的実行の区別
+-- | - 異常実行時の Intent 構造保存（preservedZippers）
 -- |
 -- | ## StagingState と StagingOutcome の分離
 -- |
@@ -33,12 +34,24 @@
 -- | - StagingOutcome: 結果（Sedimented / Abandoned / Rejected）
 -- |
 -- | Rejected は「判例」として記録され、将来の Nomos 改訂に影響を与える。
+-- |
+-- | ## 異常実行時の Intent 保存（preservedZippers）
+-- |
+-- | 「実行とは忘却である」の原則に従い、正常実行時は Intent 構造は忘却される。
+-- | しかし異常実行時は Intent 構造を保存し、再実行を可能にする。
+-- |
+-- | - 正常実行（Forgotten）: Intent は忘却、結果のみが残る
+-- | - 異常実行（Preserved）: IntentZipper として構造を保存
+-- |
+-- | 保存された IntentZipper は Presheaf の preservedZippers フィールドに蓄積され、
+-- | 後から検査・再実行が可能。
 module Noema.Topos.Presheaf
   ( -- * Presheaf
     Presheaf
   , emptyPresheaf
   , stage
   , complete
+  , preserveZipper
     -- * StagingId
   , StagingId(..)
   , mkStagingId
@@ -150,6 +163,7 @@ instance showStagingOutcome :: Show StagingOutcome where
 -- | - completedAt: 完了時刻（Completed 時に設定）
 -- | - outcome: 結果（Completed 時に設定）
 -- | - targetWorld: Intent が依拠する World（IntentContext の target）
+-- | - preservedZippers: 異常実行時に保存された IntentZipper（Json エンコード）
 type Presheaf =
   { id :: StagingId
   , state :: StagingState
@@ -158,6 +172,7 @@ type Presheaf =
   , completedAt :: Maybe Timestamp
   , outcome :: Maybe StagingOutcome  -- 完了時に設定
   , targetWorld :: World             -- Intent が依拠する World
+  , preservedZippers :: Array Json   -- 異常実行時の IntentZipper 保存
   }
 
 -- | 空の Presheaf を作成
@@ -174,6 +189,7 @@ emptyPresheaf sid ts world =
   , completedAt: Nothing
   , outcome: Nothing
   , targetWorld: world
+  , preservedZippers: []
   }
 
 -- | Intent をステージング
@@ -199,4 +215,20 @@ complete ts result presheaf = presheaf
   { state = Completed
   , completedAt = Just ts
   , outcome = Just result
+  }
+
+-- | 異常実行時の IntentZipper を保存
+-- |
+-- | 「実行とは忘却である」の原則により、正常実行時は Intent 構造は忘却される。
+-- | しかし異常実行時は IntentZipper を保存し、以下を可能にする：
+-- |
+-- | - 実行途中の状態の検査（デバッグ）
+-- | - 再実行の試行
+-- | - 判例（Rejected）との対応付け
+-- |
+-- | IntentZipper は Json としてエンコードされて保存される。
+-- | これにより、Presheaf の永続化（SQLite 等）が容易になる。
+preserveZipper :: Json -> Presheaf -> Presheaf
+preserveZipper zipper presheaf = presheaf
+  { preservedZippers = presheaf.preservedZippers <> [zipper]
   }

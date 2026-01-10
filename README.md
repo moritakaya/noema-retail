@@ -32,13 +32,13 @@
 ```
 
 - **Intent**: 「何をしたいか」の静的構造（Arrow Effects）
-- **Cognition**: 「どう実行するか」の動的解釈（Handler）
+- **Cognition**: 「どう実行するか」の動的解釈（Interpretation）
 - **Vorzeichnung（前描画）**: 実行前に Intent の全構造が確定。「実行は忘却である」
 
 ### Arrow Effects（分岐禁止）
 
 - ArrowChoice を意図的に実装しない
-- 分岐は Cognition（Handler）の責務
+- 分岐は Cognition（Interpretation）の責務
 - TLA+ でのモデル検証が容易
 
 ## モノレポ構成

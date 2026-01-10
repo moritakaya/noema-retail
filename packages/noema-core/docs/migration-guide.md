@@ -100,7 +100,7 @@ getBoth tid1 tid2 sid =
   getStock tid1 sid &&& getStock tid2 sid
 ```
 
-### パターン 4: 分岐（禁止→Handler へ移動）
+### パターン 4: 分岐（禁止→Interpretation へ移動）
 
 ```purescript
 -- 旧（Monad では可能だった分岐）
@@ -112,37 +112,37 @@ checkAndAdjust tid = do
     else pure unit
 
 -- 新: Intent では分岐禁止
--- 分岐は Handler（Cognition）で処理
+-- 分岐は Interpretation（Cognition）で処理
 
 -- Step 1: Intent は線形に
 checkStock :: ThingId -> SubjectId -> Intent' InventoryF Unit StockInfo
 checkStock = getStock
 
--- Step 2: Handler で分岐を処理
-handleCheckAndAdjust :: StockInfo -> Aff Unit
-handleCheckAndAdjust info =
+-- Step 2: Interpretation で分岐を処理
+interpretCheckAndAdjust :: StockInfo -> Aff Unit
+interpretCheckAndAdjust info =
   if info.available > Quantity 0
-    then runAdjust info.thingId info.subjectId (QuantityDelta (-1))
+    then realizeAdjust info.thingId info.subjectId (QuantityDelta (-1))
     else pure unit
 
 -- Step 3: 組み合わせて使用
 processWithBranching :: ThingId -> SubjectId -> Aff Unit
 processWithBranching tid sid = do
-  info <- runHandler inventoryHandler (checkStock tid sid) unit
-  handleCheckAndAdjust info
+  info <- realizeIntent inventoryInterpretation (checkStock tid sid) unit
+  interpretCheckAndAdjust info
 ```
 
-## Handler の移行
+## Interpretation の移行
 
 ### 旧: 自然変換
 
 ```purescript
 -- 旧: f ~> m
-inventoryHandler :: InventoryF ~> Aff
-inventoryHandler (GetStock tid k) = do
+inventoryInterpretation :: InventoryF ~> Aff
+inventoryInterpretation (GetStock tid k) = do
   qty <- getFromDB tid
   pure (k qty)
-inventoryHandler (AdjustStock tid delta next) = do
+inventoryInterpretation (AdjustStock tid delta next) = do
   adjustInDB tid delta
   pure next
 ```
@@ -151,12 +151,12 @@ inventoryHandler (AdjustStock tid delta next) = do
 
 ```purescript
 -- 新: forall a b. f a b -> a -> m b
-inventoryHandler :: forall a b. InventoryF a b -> a -> Aff b
-inventoryHandler (GetStock tid sid fi fo) input = do
+inventoryInterpretation :: forall a b. InventoryF a b -> a -> Aff b
+inventoryInterpretation (GetStock tid sid fi fo) input = do
   let _ = fi input  -- 入力を消費（通常は Unit）
   info <- getFromDB tid sid
   pure (fo info)
-inventoryHandler (AdjustStock tid sid fi fo) input = do
+inventoryInterpretation (AdjustStock tid sid fi fo) input = do
   let delta = fi input
   newQty <- adjustInDB tid sid delta
   pure (fo newQty)
@@ -187,7 +187,7 @@ import Noema.Vorzeichnung.Freer (Intent, liftIntent, foldIntent)
 import Prelude (bind, pure, (>>=))
 
 -- 新
-import Noema.Vorzeichnung.Intent (Intent', liftEffect, runIntent, arrIntent, (>>>), (<<<), first, (&&&), (***))
+import Noema.Vorzeichnung.Intent (Intent', liftEffect, realizeIntent, arrIntent, (>>>), (<<<), first, (&&&), (***))
 -- do 記法は使用しない
 ```
 
@@ -210,13 +210,13 @@ import Noema.Vorzeichnung.Intent (Intent', liftEffect, runIntent, arrIntent, (>>
 ### Phase 3: Intent の書き換え
 
 - [ ] `do` 記法を `>>>` に変換
-- [ ] `if/case` を Handler に移動
+- [ ] `if/case` を Interpretation に移動
 - [ ] 並列取得を `&&&` に変換
 
-### Phase 4: Handler の移行
+### Phase 4: Interpretation の移行
 
-- [ ] Handler の型を変更
-- [ ] 分岐ロジックを Handler に集約
+- [ ] Interpretation の型を変更
+- [ ] 分岐ロジックを Interpretation に集約
 
 ### Phase 5: テストの更新
 
@@ -229,7 +229,7 @@ import Noema.Vorzeichnung.Intent (Intent', liftEffect, runIntent, arrIntent, (>>
 
 Arrow では分岐が禁止されるため、条件分岐が必要な場合は:
 
-1. **Handler で処理**: Intent の結果を受けて Handler で分岐
+1. **Interpretation で処理**: Intent の結果を受けて Interpretation で分岐
 2. **複数の Intent**: 分岐ごとに異なる Intent を用意
 3. **データで表現**: 分岐を Either/Maybe としてデータで表現し、後で処理
 

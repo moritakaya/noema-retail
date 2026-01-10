@@ -31,7 +31,7 @@ import Data.Newtype (unwrap)
 import Effect (Effect)
 import Effect.Console (log)
 
-import Noema.Vorzeichnung.Intent (Intent', runIntent, arrIntent)
+import Noema.Vorzeichnung.Intent (Intent', realizeIntent, arrIntent)
 
 -- ============================================================
 -- テスト用の純粋な語彙
@@ -48,11 +48,11 @@ data TestF a
 
 derive instance functorTestF :: Functor TestF
 
--- | TestF の Identity Handler
+-- | TestF の Identity Interpretation
 -- |
 -- | 純粋な計算として実行
-testHandler :: TestF ~> Identity
-testHandler = case _ of
+testInterpretation :: TestF ~> Identity
+testInterpretation = case _ of
   Pure a -> Identity a
   AddOne n k -> Identity (k (n + 1))
   Double n k -> Identity (k (n * 2))
@@ -60,7 +60,7 @@ testHandler = case _ of
 
 -- | Intent を純粋に実行
 runTest :: forall a b. Intent' TestF a b -> a -> b
-runTest intent input = unwrap (runIntent testHandler intent input)
+runTest intent input = unwrap (realizeIntent testInterpretation intent input)
 
 -- ============================================================
 -- Arrow 法則テスト

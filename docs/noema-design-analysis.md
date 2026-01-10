@@ -53,7 +53,7 @@ class Arrow a where
 
 - TLA+ へのマッピングが自明になる
 - モデル検査の状態空間が制限される
-- 分岐は Handler（Cognition層）の責務として明確化
+- 分岐は Interpretation（Cognition層）の責務として明確化
 
 #### Vocabulary の余積構造
 
@@ -63,7 +63,7 @@ type NoemaF i = Coproduct SubjectF
               (Coproduct RelationF ContractF))
 ```
 
-4つの語彙（Subject, Thing, Relation, Contract）を余積で合成し、Handler も余積の普遍性で合成可能。DDD の Aggregate 境界を「余積の射影」として定式化している。
+4つの語彙（Subject, Thing, Relation, Contract）を余積で合成し、Interpretation も余積の普遍性で合成可能。DDD の Aggregate 境界を「余積の射影」として定式化している。
 
 ---
 
@@ -94,7 +94,7 @@ first intent = unsafeCoerce (Intent (Par (mkExists (ParF { inner: intent }))))
 #### 課題3: MonadRec 制約
 
 ```purescript
-runIntent :: forall f m a b. MonadRec m => (f x -> m x) -> Intent f a b -> (a -> m b)
+realizeIntent :: forall f m a b. MonadRec m => (f x -> m x) -> Intent f a b -> (a -> m b)
 ```
 
 スタック安全性のために MonadRec を要求。これにより一部のモナド変換子との組み合わせが制限される。Cloudflare Workers の環境では問題ないが、より複雑なモナドスタックを使う場合は注意が必要。
@@ -404,7 +404,7 @@ PureScript Test / GitHub Issue
 | `f *** g` | `F ∧ G` |
 | `arr f` | `vars' = f(vars)` |
 | `Vocabulary` | `VARIABLES` |
-| `Handler guard` | `ENABLED` |
+| `Interpretation guard` | `ENABLED` |
 
 #### 検証される性質
 

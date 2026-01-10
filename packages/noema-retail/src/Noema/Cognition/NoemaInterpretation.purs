@@ -25,7 +25,7 @@
 -- | -- result :: Factum SubjectId
 -- | ```
 module Noema.Cognition.NoemaInterpretation
-  ( runNoemaIntent
+  ( realizeNoemaIntent
   , NoemaEnv
   , NoemaIntent
   , mkNoemaEnv
@@ -40,7 +40,7 @@ import Effect (Effect)
 
 import Noema.Vorzeichnung.Vocabulary.NoemaF (NoemaF)
 import Noema.Vorzeichnung.Intent (Intent)
-import Noema.Cognition.Interpretation (Interpretation, runInterpretation)
+import Noema.Cognition.Interpretation (Interpretation, realizeInterpretation)
 import Noema.Sedimentation.Factum (Factum)
 import Platform.Cloudflare.FFI.SqlStorage (SqlStorage)
 
@@ -122,24 +122,30 @@ interpretNoemaF env =
 -- | 各語彙の Intent を liftSubject 等で持ち上げて使用する。
 type NoemaIntent a b = Intent (NoemaF Unit) a b
 
--- | NoemaIntent を Factum で実行
+-- | NoemaIntent を実現する
+-- |
+-- | ## 哲学的基盤
+-- |
+-- | Husserl の「充実化」(Erfüllung):
+-- | - 空虚な意志（Intent）が充実した事実（Factum）へと移行する過程
+-- | - 「実行とは忘却である」：構造は消え、事実のみが残る
 -- |
 -- | 4つの語彙すべてを統一的に扱える。
 -- |
 -- | 使用例:
 -- | ```purescript
 -- | -- Subject 操作
--- | subjectResult <- runNoemaIntent env (liftSubject (createSubject init)) unit
+-- | subjectResult <- realizeNoemaIntent env (liftSubject (createSubject init)) unit
 -- |
 -- | -- Thing 操作
--- | thingResult <- runNoemaIntent env (liftThing (getProperty tid key)) unit
+-- | thingResult <- realizeNoemaIntent env (liftThing (getProperty tid key)) unit
 -- |
 -- | -- Relation 操作
--- | relationResult <- runNoemaIntent env (liftRelation (addRelation init)) unit
+-- | relationResult <- realizeNoemaIntent env (liftRelation (addRelation init)) unit
 -- |
 -- | -- Contract 操作
--- | contractResult <- runNoemaIntent env (liftContract (proposeContract proposal)) unit
+-- | contractResult <- realizeNoemaIntent env (liftContract (proposeContract proposal)) unit
 -- | ```
-runNoemaIntent :: forall a b. NoemaEnv -> NoemaIntent a b -> a -> Factum b
-runNoemaIntent env intent input =
-  runInterpretation (interpretNoemaF env) intent input
+realizeNoemaIntent :: forall a b. NoemaEnv -> NoemaIntent a b -> a -> Factum b
+realizeNoemaIntent env intent input =
+  realizeInterpretation (interpretNoemaF env) intent input

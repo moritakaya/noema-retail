@@ -7,6 +7,7 @@
           "dependencies": [
             "aff",
             "aff-promise",
+            "argonaut-codecs",
             "argonaut-core",
             "arrays",
             "assert",
@@ -20,6 +21,7 @@
             "foreign",
             "foreign-object",
             "integers",
+            "lists",
             "maybe",
             "newtype",
             "nullable",
@@ -34,6 +36,7 @@
           "build_plan": [
             "aff",
             "aff-promise",
+            "argonaut-codecs",
             "argonaut-core",
             "arrays",
             "assert",
@@ -71,6 +74,7 @@
             "partial",
             "prelude",
             "profunctor",
+            "record",
             "refs",
             "safe-coerce",
             "st",

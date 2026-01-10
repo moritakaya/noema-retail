@@ -62,7 +62,7 @@ import Noema.Cognition.SubjectInterpretation
   ( SubjectEnv
   , mkSubjectEnv
   , initializeSubjectSchema
-  , runSubjectIntent
+  , realizeSubjectIntent
   )
 import Noema.Cognition.ThingInterpretation (initializeThingSchema)
 import Noema.Sedimentation.Factum (Factum, collapse, recognize)
@@ -162,19 +162,19 @@ handleAlarm _state = do
 
 -- | 各ルートハンドラーでは:
 -- | 1. Intent を構築
--- | 2. runSubjectIntent で Factum を取得
+-- | 2. realizeSubjectIntent で Factum を取得
 -- | 3. collapse で Effect に崩落（外界との境界）
 
 handleGetSubject :: SubjectAttractorState -> SubjectId -> Effect Response
 handleGetSubject state sid = collapse do
   let intent = getSubject sid
-  result <- runSubjectIntent state.env intent unit
+  result <- realizeSubjectIntent state.env intent unit
   recognize $ jsonResponse $ subjectStateToJson result
 
 handleGetSubjectsByKind :: SubjectAttractorState -> SubjectKind -> Effect Response
 handleGetSubjectsByKind state kind = collapse do
   let intent = getSubjectsByKind kind
-  results <- runSubjectIntent state.env intent unit
+  results <- realizeSubjectIntent state.env intent unit
   recognize $ jsonResponse $ map subjectStateToJson results
 
 handleGetSubjectsByKindStr :: SubjectAttractorState -> String -> Effect Response
@@ -192,10 +192,10 @@ handleCreateSubject state _req = collapse do
         , world: mkWorld (NomosVersion "1.0.0") timestamp
         }
   let intent = createSubject init
-  newSid <- runSubjectIntent state.env intent unit
+  newSid <- realizeSubjectIntent state.env intent unit
   -- 作成後に取得して返す
   let getIntent = getSubject newSid
-  result <- runSubjectIntent state.env getIntent unit
+  result <- realizeSubjectIntent state.env getIntent unit
   recognize $ jsonResponse $ subjectStateToJson result
 
 handleUpdateSubject :: SubjectAttractorState -> SubjectId -> Request -> Effect Response
@@ -204,10 +204,10 @@ handleUpdateSubject state sid _req = collapse do
   let patch :: SubjectPatch
       patch = { world: Nothing }
   let intent = updateSubject sid patch
-  _sedimentId <- runSubjectIntent state.env intent unit
+  _sedimentId <- realizeSubjectIntent state.env intent unit
   -- 更新後に取得して返す
   let getIntent = getSubject sid
-  result <- runSubjectIntent state.env getIntent unit
+  result <- realizeSubjectIntent state.env getIntent unit
   recognize $ jsonResponse $ subjectStateToJson result
 
 --------------------------------------------------------------------------------

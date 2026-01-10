@@ -13,6 +13,8 @@ import Test.SubjectF as SubjectF
 import Test.RelationF as RelationF
 import Test.ContractF as ContractF
 import Test.Precedent as Precedent
+import Test.Zeitigung as Zeitigung
+import Test.Abschattung as Abschattung
 
 main :: Effect Unit
 main = do
@@ -37,6 +39,10 @@ main = do
   ContractF.main
   log ""
   Precedent.main
+  log ""
+  Zeitigung.main
+  log ""
+  Abschattung.main
   log ""
   log "╔════════════════════════════════════════════════════════════╗"
   log "║           Noema Core Test Suite Complete                   ║"

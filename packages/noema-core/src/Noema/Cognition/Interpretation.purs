@@ -45,14 +45,14 @@
 -- | ```
 module Noema.Cognition.Interpretation
   ( Interpretation
-  , runInterpretation
+  , realizeInterpretation
   , composeInterpretations
   ) where
 
 import Prelude
 
 import Noema.Sedimentation.Factum (Factum)
-import Noema.Vorzeichnung.Intent (Intent', runIntent)
+import Noema.Vorzeichnung.Intent (Intent', realizeIntent)
 
 -- ============================================================
 -- Interpretation の定義
@@ -64,9 +64,9 @@ import Noema.Vorzeichnung.Intent (Intent', runIntent)
 -- | Intent f a b を (a -> Factum b) に変換できる。
 -- |
 -- | Arrow 準同型性:
--- |   runInterpretation h (f >>> g) ≡ \a -> runInterpretation h f a >>= runInterpretation h g
--- |   runInterpretation h (arr f) ≡ pure <<< f
--- |   runInterpretation h (first f) ≡ \(a, c) -> (, c) <$> runInterpretation h f a
+-- |   realizeInterpretation h (f >>> g) ≡ \a -> realizeInterpretation h f a >>= realizeInterpretation h g
+-- |   realizeInterpretation h (arr f) ≡ pure <<< f
+-- |   realizeInterpretation h (first f) ≡ \(a, c) -> (, c) <$> realizeInterpretation h f a
 -- |
 -- | 使用例:
 -- | ```purescript
@@ -79,31 +79,36 @@ import Noema.Vorzeichnung.Intent (Intent', runIntent)
 type Interpretation f = forall x. f x -> Factum x
 
 -- ============================================================
--- Intent の実行
+-- Intent の実現（Realization）
 -- ============================================================
 
--- | Interpretation を使って Intent を実行
+-- | Interpretation を使って Intent を実現する
 -- |
--- | 圏論的解釈:
+-- | ## 圏論的解釈
+-- |
 -- | Cognition（認知による忘却）の具体化。
 -- | Intent（Vorzeichnungsschema）を解釈し、
 -- | Factum（事実）へ崩落させる。
 -- |
--- | > 実行とは忘却である。
+-- | ## 哲学的基盤
+-- |
+-- | Husserl の「充実化」(Erfüllung):
+-- | - 空虚な意志（Intent）が充実した事実（Factum）へと移行する過程
+-- | - 「実行とは忘却である」：構造は消え、事実のみが残る
 -- |
 -- | 使用例:
 -- | ```purescript
--- | runInventoryIntent :: InventoryEnv -> InventoryIntent a b -> a -> Factum b
--- | runInventoryIntent env intent input =
--- |   runInterpretation (interpretInventoryF env) intent input
+-- | realizeInventoryIntent :: InventoryEnv -> InventoryIntent a b -> a -> Factum b
+-- | realizeInventoryIntent env intent input =
+-- |   realizeInterpretation (interpretInventoryF env) intent input
 -- | ```
-runInterpretation
+realizeInterpretation
   :: forall f a b
    . Interpretation f
   -> Intent' f a b
   -> a
   -> Factum b
-runInterpretation = runIntent
+realizeInterpretation = realizeIntent
 
 -- ============================================================
 -- Interpretation の合成

@@ -38,11 +38,15 @@
 -- | -- result :: Factum PropertyValue
 -- | ```
 module Noema.Cognition.ThingInterpretation
-  ( runThingIntent
+  ( realizeThingIntent
   , ThingEnv
   , mkThingEnv
   , initializeThingSchema
   , interpretThingF
+    -- * Abschattung インデックス
+  , updateAbschattungIndex
+  , queryByFacet
+  , initializeAbschattungSchema
   ) where
 
 import Prelude
@@ -83,8 +87,17 @@ import Noema.Vorzeichnung.Vocabulary.ThingF
   , ChangeReason(..)
   )
 import Noema.Vorzeichnung.Intent (Intent, liftEffect)
-import Noema.Cognition.Interpretation (Interpretation, runInterpretation)
+import Noema.Cognition.Interpretation (Interpretation, realizeInterpretation)
 import Noema.Sedimentation.Factum (Factum, recognize)
+import Noema.Sedimentation.Abschattung
+  ( Facet(..)
+  , FacetKey
+  , FacetValue
+  , mkFacetKey
+  , mkFacetValue
+  , facetToString
+  , parseFacet
+  )
 import Platform.Cloudflare.FFI.SqlStorage (SqlStorage)
 
 -- Import from InventoryInterpretation (shared FFI)
@@ -434,26 +447,30 @@ interpretThingF env = case _ of
     pure (k unit)
 
 -- ============================================================
--- Intent 実行
+-- Intent の実現（Realization）
 -- ============================================================
 
--- | ThingIntent を Factum で実行
+-- | ThingIntent を実現する
 -- |
--- | Arrow 版では入力値を明示的に渡す必要がある。
+-- | ## 哲学的基盤
+-- |
+-- | Husserl の「充実化」(Erfüllung):
+-- | - 空虚な意志（Intent）が充実した事実（Factum）へと移行する過程
+-- | - 「実行とは忘却である」：構造は消え、事実のみが残る
 -- |
 -- | 使用例:
 -- | ```purescript
--- | result <- runThingIntent env (getProperty tid key) unit
+-- | result <- realizeThingIntent env (getProperty tid key) unit
 -- | -- result :: Factum PropertyValue
 -- |
 -- | -- エントリーポイントで Factum → Effect に変換
 -- | handleFetch req = collapse do
--- |   result <- runThingIntent env intent unit
+-- |   result <- realizeThingIntent env intent unit
 -- |   ...
 -- | ```
-runThingIntent :: forall a b. ThingEnv -> ThingIntent a b -> a -> Factum b
-runThingIntent env intent input =
-  runInterpretation (interpretThingF env) intent input
+realizeThingIntent :: forall a b. ThingEnv -> ThingIntent a b -> a -> Factum b
+realizeThingIntent env intent input =
+  realizeInterpretation (interpretThingF env) intent input
 
 -- ============================================================
 -- ヘルパー関数
@@ -659,4 +676,132 @@ rowToPendingIntent row =
       Right json -> json
   , condition: Nothing  -- TODO: NULL 判定
   }
+
+-- ============================================================
+-- Abschattung インデックス
+-- ============================================================
+
+-- | Abschattung スキーマを初期化
+-- |
+-- | Thing の多面的インデックス用テーブルを作成する。
+initializeAbschattungSchema :: SqlStorage -> Effect Unit
+initializeAbschattungSchema sql = do
+  -- Abschattung インデックステーブル
+  let _ = exec sql """
+    CREATE TABLE IF NOT EXISTS abschattung_index (
+      id TEXT PRIMARY KEY,
+      subject_id TEXT NOT NULL,
+      facet_type TEXT NOT NULL,
+      facet_param TEXT,
+      index_key TEXT NOT NULL,
+      thing_id TEXT NOT NULL,
+      sediment_id INTEGER NOT NULL,
+      created_at REAL NOT NULL
+    )
+  """
+
+  -- インデックス（検索高速化）
+  let _ = exec sql "CREATE INDEX IF NOT EXISTS idx_abschattung_facet ON abschattung_index(facet_type, index_key)"
+  let _ = exec sql "CREATE INDEX IF NOT EXISTS idx_abschattung_thing ON abschattung_index(thing_id)"
+  let _ = exec sql "CREATE INDEX IF NOT EXISTS idx_abschattung_subject ON abschattung_index(subject_id)"
+
+  pure unit
+
+-- | Abschattung インデックスを更新
+-- |
+-- | Thing のプロパティ変更時に呼び出し、インデックスを更新する。
+-- |
+-- | ## 使用例
+-- |
+-- | ```purescript
+-- | -- SKU でインデックス
+-- | updateAbschattungIndex env subjectId thingId FacetBySKU "SKU-001" sedimentId
+-- |
+-- | -- プロパティでインデックス
+-- | updateAbschattungIndex env subjectId thingId (FacetByProperty "color") "red" sedimentId
+-- | ```
+updateAbschattungIndex
+  :: ThingEnv
+  -> SubjectId
+  -> ThingId
+  -> Facet
+  -> String        -- index key
+  -> SedimentId
+  -> Factum Unit
+updateAbschattungIndex env subjectId thingId facet indexKey sedimentId = do
+  now <- recognize currentTimestamp
+  entryId <- recognize generateId
+
+  let facetType = facetToString facet
+  let facetParam = case facet of
+        FacetByProperty key -> Just key
+        FacetByRelation rel -> Just rel
+        FacetByChannel ch -> Just ch
+        _ -> Nothing
+
+  -- 既存のエントリを削除（同一 Thing/Facet/Key の重複を防ぐ）
+  let _ = execWithParams env.sql
+        """
+        DELETE FROM abschattung_index
+        WHERE thing_id = ? AND facet_type = ? AND index_key = ?
+        """
+        [ unsafeToForeign (unwrapThingId thingId)
+        , unsafeToForeign facetType
+        , unsafeToForeign indexKey
+        ]
+
+  -- 新しいエントリを挿入
+  let _ = execWithParams env.sql
+        """
+        INSERT INTO abschattung_index
+          (id, subject_id, facet_type, facet_param, index_key, thing_id, sediment_id, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """
+        [ unsafeToForeign entryId
+        , unsafeToForeign (unwrapSubjectId subjectId)
+        , unsafeToForeign facetType
+        , unsafeToForeign (maybeToForeign facetParam)
+        , unsafeToForeign indexKey
+        , unsafeToForeign (unwrapThingId thingId)
+        , unsafeToForeign (unwrap sedimentId)
+        , unsafeToForeign (unwrap now)
+        ]
+
+  pure unit
+
+-- | Facet とキーで Thing を検索
+-- |
+-- | Abschattung インデックスを使用して Thing ID のリストを取得する。
+-- |
+-- | ## 使用例
+-- |
+-- | ```purescript
+-- | -- SKU で検索
+-- | thingIds <- queryByFacet env FacetBySKU "SKU-001"
+-- |
+-- | -- 位置で検索
+-- | thingIds <- queryByFacet env FacetBySitus "warehouse-001"
+-- | ```
+queryByFacet
+  :: ThingEnv
+  -> Facet
+  -> String        -- index key
+  -> Factum (Array ThingId)
+queryByFacet env facet indexKey = do
+  let facetType = facetToString facet
+
+  let cursor = execWithParams env.sql
+        """
+        SELECT thing_id FROM abschattung_index
+        WHERE facet_type = ? AND index_key = ?
+        ORDER BY created_at DESC
+        """
+        [ unsafeToForeign facetType
+        , unsafeToForeign indexKey
+        ]
+
+  let rows = toArray cursor
+  let thingIds = map (\row -> mkThingId (unsafeFromForeign (getField row "thing_id"))) rows
+
+  pure thingIds
 

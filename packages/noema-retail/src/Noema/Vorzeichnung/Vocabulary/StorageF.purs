@@ -5,7 +5,7 @@
 -- |
 -- | 設計原則:
 -- | - Arrow Effects の制約に従い、操作は線形な列として設計
--- | - 条件分岐は禁止（Handler 層で処理）
+-- | - 条件分岐は禁止（Interpretation 層で処理）
 -- | - do記法は使用できない。>>> 記法を使用する。
 module Noema.Vorzeichnung.Vocabulary.StorageF
   ( StorageF(..)
@@ -126,7 +126,7 @@ rollbackTransaction = liftEffect (RollbackTransaction unit)
 -- |   >>> commitTransaction
 -- | ```
 -- |
--- | 注意: エラー時のロールバックは Handler 層で処理する。
+-- | 注意: エラー時のロールバックは Interpretation 層で処理する。
 -- | Intent 層では線形な操作列のみを記述する。
 
 -- | 以下は違法（ArrowChoice がないため型エラー）:

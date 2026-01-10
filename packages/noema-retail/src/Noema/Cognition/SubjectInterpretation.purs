@@ -31,7 +31,7 @@
 -- | -- result :: Factum SubjectState
 -- | ```
 module Noema.Cognition.SubjectInterpretation
-  ( runSubjectIntent
+  ( realizeSubjectIntent
   , SubjectEnv
   , mkSubjectEnv
   , initializeSubjectSchema
@@ -66,7 +66,7 @@ import Noema.Vorzeichnung.Vocabulary.SubjectF
   , SubjectIntent
   , Receipt
   )
-import Noema.Cognition.Interpretation (Interpretation, runInterpretation)
+import Noema.Cognition.Interpretation (Interpretation, realizeInterpretation)
 import Noema.Sedimentation.Factum (Factum, recognize)
 import Platform.Cloudflare.FFI.SqlStorage (SqlStorage)
 
@@ -260,26 +260,30 @@ interpretSubjectF env = case _ of
     pure (k unit)
 
 -- ============================================================
--- Intent 実行
+-- Intent の実現（Realization）
 -- ============================================================
 
--- | SubjectIntent を Factum で実行
+-- | SubjectIntent を実現する
 -- |
--- | Arrow 版では入力値を明示的に渡す必要がある。
+-- | ## 哲学的基盤
+-- |
+-- | Husserl の「充実化」(Erfüllung):
+-- | - 空虚な意志（Intent）が充実した事実（Factum）へと移行する過程
+-- | - 「実行とは忘却である」：構造は消え、事実のみが残る
 -- |
 -- | 使用例:
 -- | ```purescript
--- | result <- runSubjectIntent env (getSubject sid) unit
+-- | result <- realizeSubjectIntent env (getSubject sid) unit
 -- | -- result :: Factum SubjectState
 -- |
 -- | -- エントリーポイントで Factum → Effect に変換
 -- | handleFetch req = collapse do
--- |   result <- runSubjectIntent env intent unit
+-- |   result <- realizeSubjectIntent env intent unit
 -- |   ...
 -- | ```
-runSubjectIntent :: forall a b. SubjectEnv -> SubjectIntent a b -> a -> Factum b
-runSubjectIntent env intent input =
-  runInterpretation (interpretSubjectF env) intent input
+realizeSubjectIntent :: forall a b. SubjectEnv -> SubjectIntent a b -> a -> Factum b
+realizeSubjectIntent env intent input =
+  realizeInterpretation (interpretSubjectF env) intent input
 
 -- ============================================================
 -- ヘルパー関数

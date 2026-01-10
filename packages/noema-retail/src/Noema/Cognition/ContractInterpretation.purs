@@ -30,7 +30,7 @@
 -- | -- result :: Factum ContractState
 -- | ```
 module Noema.Cognition.ContractInterpretation
-  ( runContractIntent
+  ( realizeContractIntent
   , ContractEnv
   , mkContractEnv
   , initializeContractSchema
@@ -78,7 +78,7 @@ import Noema.Vorzeichnung.Vocabulary.ContractF
   , ContractGraph
   )
 import Noema.Vorzeichnung.Intent (Intent)
-import Noema.Cognition.Interpretation (Interpretation, runInterpretation)
+import Noema.Cognition.Interpretation (Interpretation, realizeInterpretation)
 import Noema.Sedimentation.Factum (Factum, recognize)
 import Platform.Cloudflare.FFI.SqlStorage (SqlStorage)
 
@@ -487,15 +487,19 @@ interpretContractF env = case _ of
     pure (k graph)
 
 -- ============================================================
--- Intent 実行
+-- Intent の実現（Realization）
 -- ============================================================
 
--- | ContractIntent を Factum で実行
+-- | ContractIntent を実現する
 -- |
--- | Arrow 版では入力値を明示的に渡す必要がある。
-runContractIntent :: forall a b. ContractEnv -> ContractIntent a b -> a -> Factum b
-runContractIntent env intent input =
-  runInterpretation (interpretContractF env) intent input
+-- | ## 哲学的基盤
+-- |
+-- | Husserl の「充実化」(Erfüllung):
+-- | - 空虚な意志（Intent）が充実した事実（Factum）へと移行する過程
+-- | - 「実行とは忘却である」：構造は消え、事実のみが残る
+realizeContractIntent :: forall a b. ContractEnv -> ContractIntent a b -> a -> Factum b
+realizeContractIntent env intent input =
+  realizeInterpretation (interpretContractF env) intent input
 
 -- ============================================================
 -- ヘルパー関数

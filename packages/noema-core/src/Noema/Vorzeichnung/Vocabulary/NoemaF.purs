@@ -95,16 +95,16 @@ liftContract :: forall a b. Intent (ContractF a) a b -> NoemaIntent a b
 liftContract = hoistIntent inContract
 
 -- ============================================================
--- Handler の構成
+-- Interpretation の構成
 -- ============================================================
 
--- | NoemaF の Handler は各コンポーネントの Handler の組み合わせ:
+-- | NoemaF の Interpretation は各コンポーネントの Interpretation の組み合わせ:
 -- |
 -- | ```purescript
--- | noemaHandler :: NoemaF ~> Effect
--- | noemaHandler = coproduct subjectHandler
--- |              $ coproduct thingHandler
--- |              $ coproduct relationHandler contractHandler
+-- | noemaInterpretation :: NoemaF ~> Effect
+-- | noemaInterpretation = coproduct subjectInterpretation
+-- |              $ coproduct thingInterpretation
+-- |              $ coproduct relationInterpretation contractInterpretation
 -- | ```
 -- |
 -- | これは余積の普遍性により導かれる:

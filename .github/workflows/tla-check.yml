@@ -133,7 +133,7 @@ jobs:
           echo "### Suggested Actions" >> $GITHUB_STEP_SUMMARY
           echo "1. Review the counterexample trace above" >> $GITHUB_STEP_SUMMARY
           echo "2. Check if the invariant is too strict" >> $GITHUB_STEP_SUMMARY
-          echo "3. Add guards in the Handler (Cognition) layer" >> $GITHUB_STEP_SUMMARY
+          echo "3. Add guards in the Interpretation (Cognition) layer" >> $GITHUB_STEP_SUMMARY
       
       - name: Generate success summary
         if: success()

@@ -73,14 +73,14 @@ class Arrow a <= ArrowChoice a where
 1. **実行前確定**: Intent の全構造が実行前に確定
 2. **TLA+ 対応**: 分岐なしの構造はモデル検証が容易
 3. **設計原則**: 「実行は忘却である」を型レベルで保証
-4. **関心の分離**: 分岐ロジックは Cognition（Handler）の責務
+4. **関心の分離**: 分岐ロジックは Cognition（Interpretation）の責務
 
 ### 2.3 理論的背景
 
 Sanada (2023) "Algebraic effects and handlers for arrows" に基づく：
 
 - Arrow は Prof（profunctor の bicategory）上の strong monad
-- Handler は A-algebra 間の準同型（homomorphism）
+- Interpretation は A-algebra 間の準同型（homomorphism）
 - 任意の arrow term は正規形に変換可能
 
 ## 3. Vorzeichnung（前描画）
@@ -110,12 +110,12 @@ liftEffect :: forall f a. f a -> Intent f Unit a
 
 ## 4. Cognition（認知・忘却）
 
-### 4.1 Handler の意味論
+### 4.1 Interpretation の意味論
 
-Handler は自然変換として定義：
+Interpretation は自然変換として定義：
 
 ```purescript
-type Handler f m = forall a. f a -> m a
+type Interpretation f m = forall a. f a -> m a
 ```
 
 A-algebra homomorphism として解釈：
@@ -126,7 +126,7 @@ A-algebra homomorphism として解釈：
 
 ### 4.2 TLA+ ガードの実装
 
-TLA+ モデル検証で発見されたガードを Handler に実装：
+TLA+ モデル検証で発見されたガードを Interpretation に実装：
 
 ```purescript
 -- ReserveStock: reserved + qty <= MaxQuantity
@@ -152,12 +152,12 @@ Intent モジュールには2箇所の `unsafeCoerce` がある。これは意�
 
 **使用箇所**:
 - `first` 関数（Arrow インスタンス）
-- `runIntent` 関数（Par ケース）
+- `realizeIntent` 関数（Par ケース）
 
 **安全性の保証**: 構築規律（construction discipline）による
 - `Par` は `first` 関数経由でのみ構築
 - 存在型が型関係を隠蔽するため unsafeCoerce が必要
-- `runIntent` は構築時に確立された型関係を復元
+- `realizeIntent` は構築時に確立された型関係を復元
 
 **却下した代替案**:
 | 代替案 | 却下理由 |
@@ -179,7 +179,7 @@ FreerArrow.purs は開発途中で放棄された試作版であり、Intent.pur
 2. **分岐禁止**: Arrow Effects で静的構造を強制
 3. **関手の局所性**: 語彙は Vocabulary/ に集約
 4. **技術非依存**: Noema/ は Platform/ に依存しない
-5. **形式検証**: TLA+ でモデル検証、ガードを Handler に反映
+5. **形式検証**: TLA+ でモデル検証、ガードを Interpretation に反映
 6. **Presheaf 構造**: Inventory : Channel^op → Set
 7. **構築規律**: unsafeCoerce は構築規律により安全性を保証
 

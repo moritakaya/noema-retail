@@ -34,7 +34,7 @@
 -- | -- result :: Factum SomeResult
 -- | ```
 module Noema.Cognition.InventoryInterpretation
-  ( runInventoryIntent
+  ( realizeInventoryIntent
   , InventoryEnv
   , Cursor
   , mkInventoryEnv
@@ -72,7 +72,7 @@ import Noema.Vorzeichnung.Vocabulary.InventoryF
   , StockInfo
   , SyncResult(..)
   )
-import Noema.Cognition.Interpretation (Interpretation, runInterpretation)
+import Noema.Cognition.Interpretation (Interpretation, realizeInterpretation)
 import Noema.Sedimentation.Factum (Factum, recognize)
 import Platform.Cloudflare.FFI.SqlStorage (SqlStorage)
 
@@ -306,26 +306,30 @@ interpretInventoryF env = case _ of
     pure (k (defaultStockInfo (ThingId tid) defaultSid))
 
 -- ============================================================
--- Intent 実行
+-- Intent の実現（Realization）
 -- ============================================================
 
--- | InventoryIntent を Factum で実行
+-- | InventoryIntent を実現する
 -- |
--- | Arrow 版では入力値を明示的に渡す必要がある。
+-- | ## 哲学的基盤
+-- |
+-- | Husserl の「充実化」(Erfüllung):
+-- | - 空虚な意志（Intent）が充実した事実（Factum）へと移行する過程
+-- | - 「実行とは忘却である」：構造は消え、事実のみが残る
 -- |
 -- | 使用例:
 -- | ```purescript
--- | result <- runInventoryIntent env (getStock tid sid) unit
+-- | result <- realizeInventoryIntent env (getStock tid sid) unit
 -- | -- result :: Factum StockInfo
 -- |
 -- | -- エントリーポイントで Factum → Effect に変換
 -- | handleFetch req = collapse do
--- |   result <- runInventoryIntent env intent unit
+-- |   result <- realizeInventoryIntent env intent unit
 -- |   ...
 -- | ```
-runInventoryIntent :: forall a b. InventoryEnv -> InventoryIntent a b -> a -> Factum b
-runInventoryIntent env intent input =
-  runInterpretation (interpretInventoryF env) intent input
+realizeInventoryIntent :: forall a b. InventoryEnv -> InventoryIntent a b -> a -> Factum b
+realizeInventoryIntent env intent input =
+  realizeInterpretation (interpretInventoryF env) intent input
 
 -- ============================================================
 -- ヘルパー関数

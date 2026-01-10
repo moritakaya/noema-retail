@@ -101,12 +101,12 @@ data InventoryF a b
   | SetStock ThingId (a -> Quantity) (() -> b)
 ```
 
-## Handler の再設計
+## Interpretation の再設計
 
-Handler は Arrow 準同型:
+Interpretation は Arrow 準同型:
 
 ```purescript
-type Handler f g = forall a b. f a b -> g a b
+type Interpretation f g = forall a b. f a b -> g a b
 
 -- 制約: Arrow 構造を保存
 -- h (arr f) = arr f
@@ -114,14 +114,14 @@ type Handler f g = forall a b. f a b -> g a b
 -- h (first f) = first (h f)
 ```
 
-具体的な Handler:
+具体的な Interpretation:
 
 ```purescript
-inventoryHandler :: InventoryF ~> Aff
-inventoryHandler (GetStock thingId) = Aff \_ -> do
+inventoryInterpretation :: InventoryF ~> Aff
+inventoryInterpretation (GetStock thingId) = Aff \_ -> do
   -- SQLite からの読み取り
   ...
-inventoryHandler (AdjustStock thingId delta) = Aff \_ -> do
+inventoryInterpretation (AdjustStock thingId delta) = Aff \_ -> do
   -- SQLite への書き込み
   ...
 ```
@@ -161,10 +161,10 @@ parallelGet =
 2. `HttpF`, `StorageF` の再設計
 3. 余積の再定義
 
-### Phase 3: Handler の移行
+### Phase 3: Interpretation の移行
 
-1. Arrow 準同型としての Handler
-2. 既存 Handler の書き換え
+1. Arrow 準同型としての Interpretation
+2. 既存 Interpretation の書き換え
 
 ### Phase 4: 既存コードの移行
 

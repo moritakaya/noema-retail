@@ -22,12 +22,17 @@
 module Noema.Sedimentation.Seal
   ( Seal(..)
   , mkSeal
+  , SealId(..)
+  , mkSealId
   ) where
 
 import Prelude
 
-import Noema.Topos.Situs (SedimentId, Timestamp)
-import Noema.Topos.Nomos (World)
+import Data.Newtype (unwrap)
+import Data.Argonaut.Core (Json)
+import Data.Argonaut.Encode (class EncodeJson, encodeJson)
+import Noema.Topos.Situs (SedimentId(..), Timestamp(..))
+import Noema.Topos.Nomos (World, NomosVersion(..))
 
 -- | Seal: 沈殿の封印（トランザクションの完了証明）
 -- |
@@ -60,6 +65,33 @@ derive instance eqSeal :: Eq Seal
 
 instance showSeal :: Show Seal where
   show (Seal s) = "(Seal " <> show s.sedimentId <> " " <> show s.world.nomosVersion <> ")"
+
+instance encodeJsonSeal :: EncodeJson Seal where
+  encodeJson (Seal s) = encodeJson
+    { success: s.success
+    , sedimentId: unwrap s.sedimentId
+    , hash: s.hash
+    , timestamp: unwrap s.timestamp
+    , nomosVersion: unwrap s.world.nomosVersion
+    , region: s.world.region
+    , worldTimestamp: unwrap s.world.timestamp
+    }
+
+-- ============================================================
+-- SealId: Seal の識別子
+-- ============================================================
+
+-- | Seal の識別子
+newtype SealId = SealId String
+
+derive instance eqSealId :: Eq SealId
+derive instance ordSealId :: Ord SealId
+
+instance showSealId :: Show SealId where
+  show (SealId s) = "(SealId " <> show s <> ")"
+
+mkSealId :: String -> SealId
+mkSealId = SealId
 
 -- | Seal を作成
 -- |

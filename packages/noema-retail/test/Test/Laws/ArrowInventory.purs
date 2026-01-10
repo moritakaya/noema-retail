@@ -1,7 +1,7 @@
 -- | Noema Arrow Laws Test - InventoryF
 -- |
 -- | 実際の InventoryF 語彙を使った Arrow 法則テスト。
--- | Mock Handler を使用して純粋にテスト。
+-- | Mock Interpretation を使用して純粋にテスト。
 module Test.Laws.ArrowInventory where
 
 import Prelude
@@ -14,7 +14,7 @@ import Data.Newtype (unwrap)
 import Effect (Effect)
 import Effect.Console (log)
 
-import Noema.Vorzeichnung.Intent (Intent', runIntent)
+import Noema.Vorzeichnung.Intent (Intent', realizeIntent)
 import Noema.Topos.Situs (ThingId(..), SubjectId, Quantity(..), QuantityDelta(..), mkSubjectId)
 import Noema.Horizont.Channel (Channel(..))
 import Noema.Vorzeichnung.Vocabulary.InventoryF
@@ -27,16 +27,16 @@ import Noema.Vorzeichnung.Vocabulary.InventoryF
   )
 
 -- ============================================================
--- Mock Handler
+-- Mock Interpretation
 -- ============================================================
 
--- | Mock Handler（純粋版 - Identity）
+-- | Mock Interpretation（純粋版 - Identity）
 -- |
 -- | 状態を持たない簡易版。ハードコードされたデータを返す。
 -- |
 -- | 注: LocationId は SubjectId に統合された。
-mockHandlerPure :: InventoryF ~> Identity
-mockHandlerPure = case _ of
+mockInterpretationPure :: InventoryF ~> Identity
+mockInterpretationPure = case _ of
   GetStock (ThingId tid) sid k ->
     let info = case tid of
           "SKU-001" ->
@@ -92,7 +92,7 @@ defaultStock tid sid =
 
 -- | Intent を純粋に実行
 runInventoryTest :: forall a b. InventoryIntent a b -> a -> b
-runInventoryTest intent input = unwrap (runIntent mockHandlerPure intent input)
+runInventoryTest intent input = unwrap (realizeIntent mockInterpretationPure intent input)
 
 -- ============================================================
 -- Arrow 法則テスト（InventoryF）

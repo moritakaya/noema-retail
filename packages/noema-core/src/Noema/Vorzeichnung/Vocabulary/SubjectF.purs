@@ -58,6 +58,7 @@ import Data.Argonaut.Core (Json)
 import Noema.Topos.Situs (SubjectId, SedimentId, Timestamp)
 import Noema.Topos.Nomos (World, IntentContext)
 import Noema.Vorzeichnung.Intent (Intent, liftEffect)
+import Noema.Vorzeichnung.Situierung (class Situable, PartitionKey(..))
 
 -- | Subject の種別
 data SubjectKind
@@ -204,3 +205,21 @@ sendIntent targetSid envelope = liftEffect (SendIntent targetSid (\_ -> envelope
 -- | ```
 confirmReceipt :: String -> SubjectIntent Unit Unit
 confirmReceipt rid = liftEffect (ConfirmReceipt rid (\_ -> unit) identity)
+
+-- ============================================================
+-- Situable インスタンス
+-- ============================================================
+
+-- | SubjectF (Unit) の Situable インスタンス
+-- |
+-- | Subject 操作のルーティング先を決定する。
+-- | - 特定の Subject への操作 → BySubject
+-- | - 種別検索など複数対象 → Broadcast
+instance situableSubjectFUnit :: Situable (SubjectF Unit) where
+  situate = case _ of
+    CreateSubject _ _ -> Broadcast  -- 新規作成先は動的に決定
+    GetSubject sid _ _ -> BySubject sid
+    GetSubjectsByKind _ _ _ -> Broadcast  -- 複数 Subject を検索
+    UpdateSubject sid _ _ -> BySubject sid
+    SendIntent targetSid _ _ -> BySubject targetSid
+    ConfirmReceipt _ _ _ -> Broadcast  -- Receipt ID から Subject を特定できない

@@ -31,7 +31,7 @@
 -- | -- result :: Factum (Array Relation)
 -- | ```
 module Noema.Cognition.RelationInterpretation
-  ( runRelationIntent
+  ( realizeRelationIntent
   , RelationEnv
   , mkRelationEnv
   , initializeRelationSchema
@@ -83,7 +83,7 @@ import Noema.Vorzeichnung.Vocabulary.RelationF
   , IntentionView
   )
 import Noema.Vorzeichnung.Intent (Intent)
-import Noema.Cognition.Interpretation (Interpretation, runInterpretation)
+import Noema.Cognition.Interpretation (Interpretation, realizeInterpretation)
 import Noema.Sedimentation.Factum (Factum, recognize)
 import Platform.Cloudflare.FFI.SqlStorage (SqlStorage)
 
@@ -412,26 +412,30 @@ interpretRelationF env = case _ of
     pure (k intentions)
 
 -- ============================================================
--- Intent 実行
+-- Intent の実現（Realization）
 -- ============================================================
 
--- | RelationIntent を Factum で実行
+-- | RelationIntent を実現する
 -- |
--- | Arrow 版では入力値を明示的に渡す必要がある。
+-- | ## 哲学的基盤
+-- |
+-- | Husserl の「充実化」(Erfüllung):
+-- | - 空虚な意志（Intent）が充実した事実（Factum）へと移行する過程
+-- | - 「実行とは忘却である」：構造は消え、事実のみが残る
 -- |
 -- | 使用例:
 -- | ```purescript
--- | result <- runRelationIntent env (getRelationsFrom sid kind) unit
+-- | result <- realizeRelationIntent env (getRelationsFrom sid kind) unit
 -- | -- result :: Factum (Array Relation)
 -- |
 -- | -- エントリーポイントで Factum → Effect に変換
 -- | handleFetch req = collapse do
--- |   result <- runRelationIntent env intent unit
+-- |   result <- realizeRelationIntent env intent unit
 -- |   ...
 -- | ```
-runRelationIntent :: forall a b. RelationEnv -> RelationIntent a b -> a -> Factum b
-runRelationIntent env intent input =
-  runInterpretation (interpretRelationF env) intent input
+realizeRelationIntent :: forall a b. RelationEnv -> RelationIntent a b -> a -> Factum b
+realizeRelationIntent env intent input =
+  realizeInterpretation (interpretRelationF env) intent input
 
 -- ============================================================
 -- ヘルパー関数

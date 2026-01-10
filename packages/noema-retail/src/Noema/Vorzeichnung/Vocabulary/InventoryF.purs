@@ -57,6 +57,7 @@ import Noema.Vorzeichnung.Intent (Intent, liftEffect)
 import Noema.Topos.Situs (ThingId(..), SubjectId(..), Quantity(..), QuantityDelta(..), mkThingId, mkSubjectId, unwrapThingId, unwrapSubjectId, mkQuantity, unwrapQuantity, mkQuantityDelta, unwrapQuantityDelta)
 import Noema.Horizont.Channel (Channel(..))
 import Noema.Horizont.InventoryCarrier (SyncResult(..))
+import Noema.Vorzeichnung.Situierung (class Situable, PartitionKey(..))
 
 -- ============================================================
 -- 在庫情報
@@ -184,7 +185,7 @@ syncFromChannel ch tid = liftEffect (SyncFromChannel ch tid identity)
 -- |   getStock tid sid
 -- |   >>> arrIntent (\info -> info.available >= qty)
 -- |   -- 注: この時点で分岐はできない！
--- |   -- 結果は Boolean として返され、分岐は Handler 層で処理
+-- |   -- 結果は Boolean として返され、分岐は Interpretation 層で処理
 -- | ```
 
 -- | 在庫同期: 取得 → チャネルへ送信
@@ -225,4 +226,26 @@ syncFromChannel ch tid = liftEffect (SyncFromChannel ch tid identity)
 -- |   >>> left (adjustStock tid sid (QuantityDelta (-1)))  -- 型エラー!
 -- | ```
 -- |
--- | 分岐が必要な場合は Handler（Cognition）層で処理する。
+-- | 分岐が必要な場合は Interpretation（Cognition）層で処理する。
+
+-- ============================================================
+-- Situable インスタンス
+-- ============================================================
+
+-- | InventoryF の Situable インスタンス
+-- |
+-- | 在庫操作のルーティング先を決定する。
+-- | すべての操作は Thing を包摂する Subject にルーティングされる。
+-- |
+-- | - GetStock, SetStock, AdjustStock: ByThing tid sid
+-- | - ReserveStock, ReleaseReservation: ByThing tid sid
+-- | - SyncToChannel, SyncFromChannel: 外部チャネル同期（Broadcast）
+instance situableInventoryF :: Situable InventoryF where
+  situate = case _ of
+    GetStock tid sid _ -> ByThing tid sid
+    SetStock tid sid _ _ -> ByThing tid sid
+    AdjustStock tid sid _ _ -> ByThing tid sid
+    ReserveStock tid sid _ _ -> ByThing tid sid
+    ReleaseReservation tid sid _ _ -> ByThing tid sid
+    SyncToChannel _ tid _ _ -> Broadcast  -- 外部チャネル、Thing の位置は不明
+    SyncFromChannel _ tid _ -> Broadcast  -- 外部チャネルから取得

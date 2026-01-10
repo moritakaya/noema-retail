@@ -66,9 +66,9 @@ handleFetch state req = do
   state' <- ensureInitialized state
   -- Intent を構築
   let intent = buildIntent req
-  -- Factum として実行、collapse で Effect へ
+  -- Factum として実現、collapse で Effect へ
   collapse do
-    result <- runIntent state'.env intent unit
+    result <- realizeIntent state'.env intent unit
     recognize $ jsonResponse result
 
 -- アラーム処理
@@ -86,9 +86,9 @@ Attractor のエントリーポイントは外界との境界。
 ```purescript
 handleGetInventory :: State -> ThingId -> SubjectId -> Effect Response
 handleGetInventory state tid sid = collapse do
-  -- Factum 内で Intent を実行
+  -- Factum 内で Intent を実現（realize）
   let intent = getStock tid sid
-  result <- runInventoryIntent state.env intent unit
+  result <- realizeInventoryIntent state.env intent unit
   -- Response 作成も Factum 内
   recognize $ jsonResponse result
 ```

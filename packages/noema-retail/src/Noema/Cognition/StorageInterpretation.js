@@ -1,4 +1,4 @@
-// Noema.Cognition.StorageHandler FFI
+// Noema.Cognition.StorageInterpretation FFI
 
 // SqlStorage functions (Cloudflare Durable Objects SQLite API)
 export const exec = (sql) => (query) => {

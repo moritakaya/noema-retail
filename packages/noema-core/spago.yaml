@@ -13,9 +13,11 @@ package:
     - exists
     - control
     - argonaut-core
+    - argonaut-codecs
     - ordered-collections
     - datetime
     - arrays
+    - lists
     - foldable-traversable
     - foreign
     - strings

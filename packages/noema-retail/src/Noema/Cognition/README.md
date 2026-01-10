@@ -108,13 +108,13 @@ ContractF → 法的整合性（Nomos による制約）
 -- 環境を作成
 env <- recognize $ mkRelationEnv sql
 
--- Intent を実行
-result <- runRelationIntent env (getRelationsFrom subjectId Owns) unit
+-- Intent を実現（realize）
+result <- realizeRelationIntent env (getRelationsFrom subjectId Owns) unit
 -- result :: Factum (Array Relation)
 
 -- エントリーポイントで Factum → Effect に変換
 handleFetch req = collapse do
-  result <- runRelationIntent env intent unit
+  result <- realizeRelationIntent env intent unit
   recognize $ jsonResponse result
 ```
 

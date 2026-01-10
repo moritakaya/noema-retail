@@ -96,7 +96,7 @@ derive newtype instance Monad Factum
 
 -- | MonadRec インスタンス（スタック安全な再帰）
 -- |
--- | Intent の runIntent は MonadRec を要求するため必須。
+-- | Intent の realizeIntent は MonadRec を要求するため必須。
 instance MonadRec Factum where
   tailRecM f a = Factum $ tailRecM (\x -> unwrapFactum (f x)) a
     where
@@ -125,9 +125,9 @@ derive newtype instance Monoid a => Monoid (Factum a)
 -- | 使用例:
 -- | ```purescript
 -- | -- エントリーポイント（外界との境界）
--- | handleFetch :: Request -> Effect Response
--- | handleFetch req = collapse do
--- |   result <- runInventoryIntent env intent unit
+-- | processFetch :: Request -> Effect Response
+-- | processFetch req = collapse do
+-- |   result <- realizeInventoryIntent env intent unit
 -- |   recognize $ jsonResponse result
 -- | ```
 collapse :: forall a. Factum a -> Effect a

@@ -20,7 +20,7 @@
 -- | ```
 -- |
 -- | Arrow では構造が静的に確定するため、
--- | Handler の合成が容易になり、最適化の余地が生まれる。
+-- | Interpretation の合成が容易になり、最適化の余地が生まれる。
 module Noema.Vorzeichnung.Combinators
   ( -- * Basic combinators
     eff_
@@ -199,7 +199,7 @@ fanout = (&&&)
 -- | ## 理由
 -- |
 -- | 1. **静的解析可能性**: 構造が静的に確定するため、
--- |    Handler の合成や最適化が容易になる。
+-- |    Interpretation の合成や最適化が容易になる。
 -- |
 -- | 2. **哲学的整合性**: 「意志」は実行前に完全に記述される。
 -- |    実行時の分岐は「反応」であり、Noema の対象外。
@@ -209,7 +209,7 @@ fanout = (&&&)
 -- |
 -- | ## 分岐が必要な場合
 -- |
--- | 分岐はセマンティクスレベル（Handler）で実装する:
+-- | 分岐はセマンティクスレベル（Interpretation）で実装する:
 -- |
 -- | ```purescript
 -- | -- 語彙に条件付き操作を追加
@@ -217,9 +217,9 @@ fanout = (&&&)
 -- |   = ...
 -- |   | ConditionalAdjust ProductId Quantity (Boolean -> a)
 -- |
--- | -- Handler で分岐を実装
--- | handleInventory :: InventoryF ~> Aff
--- | handleInventory (ConditionalAdjust pid qty k) = do
+-- | -- Interpretation で分岐を実装
+-- | interpretInventory :: InventoryF ~> Aff
+-- | interpretInventory (ConditionalAdjust pid qty k) = do
 -- |   current <- getStock pid
 -- |   if current >= qty
 -- |     then do
@@ -228,5 +228,5 @@ fanout = (&&&)
 -- |     else pure (k false)
 -- | ```
 -- |
--- | これにより、分岐のセマンティクスは Handler に隠蔽され、
+-- | これにより、分岐のセマンティクスは Interpretation に隠蔽され、
 -- | Intent は純粋な「意志の列」として保たれる。

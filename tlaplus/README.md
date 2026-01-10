@@ -11,7 +11,7 @@ TLA+ 仕様は Intent の意味論を形式化する：
 ```
 Intent (PureScript)  ─────>  TLA+ Specification
         │                          │
-        │ runIntent                │ TLC Model Checker
+        │ realizeIntent            │ TLC Model Checker
         ▼                          ▼
      Effect              State Space Exploration
 ```
@@ -136,6 +136,6 @@ INVARIANTS
 ## 関連
 
 - [../src/Noema/Vorzeichnung/](../src/Noema/Vorzeichnung/README.md) - Intent 定義
-- [../src/Noema/Cognition/](../src/Noema/Cognition/README.md) - Handler 実装（ガード含む）
+- [../src/Noema/Cognition/](../src/Noema/Cognition/README.md) - Interpretation 実装（ガード含む）
 - [../src/TlaPlus/](../src/TlaPlus/) - TLA+ 連携コード
 - [../docs/tla-pipeline.md](../docs/tla-pipeline.md) - TLA+ パイプライン詳細

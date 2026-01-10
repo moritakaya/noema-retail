@@ -22,7 +22,7 @@ import Data.Newtype (unwrap)
 import Effect (Effect)
 import Effect.Console (log)
 
-import Noema.Vorzeichnung.Intent (Intent', runIntent)
+import Noema.Vorzeichnung.Intent (Intent', realizeIntent)
 import Noema.Vorzeichnung.Combinators
   ( eff_
   , constant
@@ -39,7 +39,7 @@ import Noema.Vorzeichnung.Combinators
   )
 
 -- ============================================================
--- テスト用の語彙と Handler
+-- テスト用の語彙と Interpretation
 -- ============================================================
 
 -- | テスト用の単純な語彙
@@ -50,16 +50,16 @@ data TestF a
 
 derive instance functorTestF :: Functor TestF
 
--- | TestF の Identity Handler
-testHandler :: TestF ~> Identity
-testHandler = case _ of
+-- | TestF の Identity Interpretation
+testInterpretation :: TestF ~> Identity
+testInterpretation = case _ of
   Pure a -> Identity a
   GetValue k -> Identity (k 42)  -- 固定値を返す
   PutValue _ a -> Identity a     -- 値を無視
 
 -- | Intent を純粋に実行
 runTest :: forall a b. Intent' TestF a b -> a -> b
-runTest intent input = unwrap (runIntent testHandler intent input)
+runTest intent input = unwrap (realizeIntent testInterpretation intent input)
 
 -- ============================================================
 -- Basic combinators tests

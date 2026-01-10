@@ -132,7 +132,7 @@ else
     echo -e "${YELLOW}Suggested Actions:${NC}"
     echo "1. Review the counterexample trace"
     echo "2. Check if the invariant is too strict"
-    echo "3. Add guards in the Handler (Cognition) layer"
+    echo "3. Add guards in the Interpretation (Cognition) layer"
 fi
 
 echo ""
