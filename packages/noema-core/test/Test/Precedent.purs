@@ -40,7 +40,7 @@ test_precedent_record_creation = do
     world = mkWorld nv ts
 
     record = mkPrecedentRecord
-      "staging-001"
+      "suspension-001"
       nv
       "Version mismatch"
       ts
@@ -48,7 +48,7 @@ test_precedent_record_creation = do
       world
 
   pure $
-    record.stagingId == "staging-001" &&
+    record.suspensionId == "suspension-001" &&
     record.nomosVersion == nv &&
     record.rejectionReason == "Version mismatch" &&
     record.rejectedAt == ts
@@ -75,8 +75,8 @@ test_add_precedent = do
     ts2 = Timestamp 1704153600000.0
     world = mkWorld nv ts1
 
-    record1 = mkPrecedentRecord "staging-001" nv "Reason A" ts1 jsonNull world
-    record2 = mkPrecedentRecord "staging-002" nv "Reason B" ts2 jsonNull world
+    record1 = mkPrecedentRecord "suspension-001" nv "Reason A" ts1 jsonNull world
+    record2 = mkPrecedentRecord "suspension-002" nv "Reason B" ts2 jsonNull world
 
     plog0 = emptyPrecedentLog
     plog1 = addPrecedent record1 plog0
@@ -95,9 +95,9 @@ test_find_precedents = do
     ts = Timestamp 1704067200000.0
     world = mkWorld nv ts
 
-    record1 = mkPrecedentRecord "staging-001" nv "Reason A" ts jsonNull world
-    record2 = mkPrecedentRecord "staging-002" nv "Reason B" ts jsonNull world
-    record3 = mkPrecedentRecord "staging-003" nv "Reason A" ts jsonNull world
+    record1 = mkPrecedentRecord "suspension-001" nv "Reason A" ts jsonNull world
+    record2 = mkPrecedentRecord "suspension-002" nv "Reason B" ts jsonNull world
+    record3 = mkPrecedentRecord "suspension-003" nv "Reason A" ts jsonNull world
 
     plog = addPrecedent record3
          $ addPrecedent record2
@@ -164,9 +164,9 @@ test_connection_flat_to_curved_with_precedents = do
     world = mkWorld nv ts
 
     -- 3件の判例を追加（閾値に達する）
-    record1 = mkPrecedentRecord "staging-001" nv "Reason" ts jsonNull world
-    record2 = mkPrecedentRecord "staging-002" nv "Reason" ts jsonNull world
-    record3 = mkPrecedentRecord "staging-003" nv "Reason" ts jsonNull world
+    record1 = mkPrecedentRecord "suspension-001" nv "Reason" ts jsonNull world
+    record2 = mkPrecedentRecord "suspension-002" nv "Reason" ts jsonNull world
+    record3 = mkPrecedentRecord "suspension-003" nv "Reason" ts jsonNull world
 
     plog = addPrecedent record3
          $ addPrecedent record2
@@ -190,9 +190,9 @@ test_connection_curved_to_critical_with_precedents = do
     world2 = mkWorld nv2 ts
 
     -- 3件の判例を nv1 で追加
-    record1 = mkPrecedentRecord "staging-001" nv1 "Reason" ts jsonNull world1
-    record2 = mkPrecedentRecord "staging-002" nv1 "Reason" ts jsonNull world1
-    record3 = mkPrecedentRecord "staging-003" nv1 "Reason" ts jsonNull world1
+    record1 = mkPrecedentRecord "suspension-001" nv1 "Reason" ts jsonNull world1
+    record2 = mkPrecedentRecord "suspension-002" nv1 "Reason" ts jsonNull world1
+    record3 = mkPrecedentRecord "suspension-003" nv1 "Reason" ts jsonNull world1
 
     plog = addPrecedent record3
          $ addPrecedent record2
@@ -216,9 +216,9 @@ test_connection_different_version_precedents = do
     world2 = mkWorld nv2 ts
 
     -- nv2 での判例（nv1 の検証には影響しない）
-    record1 = mkPrecedentRecord "staging-001" nv2 "Reason" ts jsonNull world2
-    record2 = mkPrecedentRecord "staging-002" nv2 "Reason" ts jsonNull world2
-    record3 = mkPrecedentRecord "staging-003" nv2 "Reason" ts jsonNull world2
+    record1 = mkPrecedentRecord "suspension-001" nv2 "Reason" ts jsonNull world2
+    record2 = mkPrecedentRecord "suspension-002" nv2 "Reason" ts jsonNull world2
+    record3 = mkPrecedentRecord "suspension-003" nv2 "Reason" ts jsonNull world2
 
     plog = addPrecedent record3
          $ addPrecedent record2

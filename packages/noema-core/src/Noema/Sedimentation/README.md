@@ -50,7 +50,7 @@ Noema には「エラー」という概念はない。
 Cognition が正常に崩落しなかったケースは「判例」として記録される。
 
 ```purescript
-data StagingOutcome
+data SuspensionOutcome
   = Sedimented SedimentId World  -- 正常に沈殿
   | Abandoned                     -- ユーザーによる取り消し
   | Rejected World Reason         -- 判例

@@ -1,4 +1,4 @@
--- | Noema Topos: Presheaf（前層 / ステージング環境）
+-- | Noema Topos: Presheaf（前層 / 懸濁環境）
 -- |
 -- | 圏論的位置づけ:
 -- |   - Set^{C^op}（Site 上の前層圏）
@@ -17,21 +17,29 @@
 -- | Sheaf（層）= Sedimentation の結果
 -- | ```
 -- |
--- | ## ステージング環境としての役割
+-- | ## 懸濁環境としての役割
 -- |
 -- | Presheaf は以下の用途で使用される：
--- | - 複数の Intent をバッチ処理前にステージング
+-- | - 複数の Intent をバッチ処理前に懸濁
 -- | - トランザクション境界の管理
 -- | - 投機的実行と確定的実行の区別
 -- | - 異常実行時の Intent 構造保存（preservedZippers）
 -- |
--- | ## StagingState と StagingOutcome の分離
+-- | ## 地質学的メタファー
+-- |
+-- | 懸濁（Suspension）は沈殿（Sedimentation）の前段階を表す：
+-- | - Intent（意志の構造）が Presheaf に蓄積
+-- | - 懸濁状態（粒子が液体中に浮遊）
+-- | - Cognition による沈殿（粒子が沈む）
+-- | - Seal（固化 = 岩石になる）
+-- |
+-- | ## SuspensionState と SuspensionOutcome の分離
 -- |
 -- | Noema では「Sediment は不変」という原則がある。
--- | そのため、ステージングの「進行状態」と「結果」を分離する：
+-- | そのため、懸濁の「進行状態」と「結果」を分離する：
 -- |
--- | - StagingState: 進行状態（Pending → Processing → Completed）
--- | - StagingOutcome: 結果（Sedimented / Abandoned / Rejected）
+-- | - SuspensionState: 進行状態（Pending → Processing → Completed）
+-- | - SuspensionOutcome: 結果（Sedimented / Abandoned / Rejected）
 -- |
 -- | Rejected は「判例」として記録され、将来の Nomos 改訂に影響を与える。
 -- |
@@ -49,16 +57,16 @@ module Noema.Topos.Presheaf
   ( -- * Presheaf
     Presheaf
   , emptyPresheaf
-  , stage
+  , suspend
   , complete
   , preserveZipper
-    -- * StagingId
-  , StagingId(..)
-  , mkStagingId
-    -- * StagingState
-  , StagingState(..)
-    -- * StagingOutcome
-  , StagingOutcome(..)
+    -- * SuspensionId
+  , SuspensionId(..)
+  , mkSuspensionId
+    -- * SuspensionState
+  , SuspensionState(..)
+    -- * SuspensionOutcome
+  , SuspensionOutcome(..)
   , Reason
   ) where
 
@@ -72,48 +80,48 @@ import Noema.Topos.Situs (Timestamp, SubjectId, SedimentId)
 import Noema.Topos.Nomos (World)
 
 -- ============================================================
--- StagingId
+-- SuspensionId
 -- ============================================================
 
--- | ステージング ID
-newtype StagingId = StagingId String
+-- | 懸濁 ID
+newtype SuspensionId = SuspensionId String
 
-derive instance eqStagingId :: Eq StagingId
-derive instance ordStagingId :: Ord StagingId
-derive newtype instance showStagingId :: Show StagingId
+derive instance eqSuspensionId :: Eq SuspensionId
+derive instance ordSuspensionId :: Ord SuspensionId
+derive newtype instance showSuspensionId :: Show SuspensionId
 
-mkStagingId :: String -> StagingId
-mkStagingId = StagingId
+mkSuspensionId :: String -> SuspensionId
+mkSuspensionId = SuspensionId
 
 -- ============================================================
--- StagingState（進行状態）
+-- SuspensionState（進行状態）
 -- ============================================================
 
--- | ステージングの進行状態
+-- | 懸濁の進行状態
 -- |
 -- | Presheaf のライフサイクルを表現する。
 -- | RolledBack は存在しない：Noema では Sediment は不変であり、
--- | 「ロールバック」という概念は StagingOutcome.Abandoned として表現される。
-data StagingState
+-- | 「ロールバック」という概念は SuspensionOutcome.Abandoned として表現される。
+data SuspensionState
   = Pending       -- 保留中（Intent を蓄積中）
   | Processing    -- 処理中（Sedimentation 実行中）
   | Completed     -- 完了（結果は outcome フィールドを参照）
 
-derive instance eqStagingState :: Eq StagingState
+derive instance eqSuspensionState :: Eq SuspensionState
 
-instance showStagingState :: Show StagingState where
+instance showSuspensionState :: Show SuspensionState where
   show Pending = "Pending"
   show Processing = "Processing"
   show Completed = "Completed"
 
 -- ============================================================
--- StagingOutcome（結果）
+-- SuspensionOutcome（結果）
 -- ============================================================
 
 -- | 結果の理由
 type Reason = String
 
--- | ステージングの結果
+-- | 懸濁の結果
 -- |
 -- | Cognition が Intent を解釈した結果。
 -- | 一度決定したら不変（Noema の原則）。
@@ -129,14 +137,14 @@ type Reason = String
 -- |
 -- | Sedimented と Rejected は適用された World を記録する。
 -- | これにより、どの法の下で沈殿/棄却されたかを追跡できる。
-data StagingOutcome
+data SuspensionOutcome
   = Sedimented SedimentId World  -- 正常に沈殿（適用された World を記録）
   | Abandoned                     -- ユーザーによる取り消し
   | Rejected World Reason         -- 判例：Cognition が崩落しなかった
 
-derive instance eqStagingOutcome :: Eq StagingOutcome
+derive instance eqSuspensionOutcome :: Eq SuspensionOutcome
 
-instance showStagingOutcome :: Show StagingOutcome where
+instance showSuspensionOutcome :: Show SuspensionOutcome where
   show (Sedimented sid world) = "(Sedimented " <> show sid <> " " <> show world.nomosVersion <> ")"
   show Abandoned = "Abandoned"
   show (Rejected world reason) = "(Rejected " <> show world.nomosVersion <> " " <> show reason <> ")"
@@ -145,32 +153,32 @@ instance showStagingOutcome :: Show StagingOutcome where
 -- Presheaf
 -- ============================================================
 
--- | Presheaf: 前層（ステージング環境）
+-- | Presheaf: 前層（懸濁環境）
 -- |
 -- | Site C 上の前層 P: C^op → Set を表現する。
--- | 各 Subject（Site の点）に対して、ステージングされた Intent の集合を保持。
+-- | 各 Subject（Site の点）に対して、懸濁された Intent の集合を保持。
 -- |
 -- | ```
--- | P(subject) = { staged intents for this subject }
+-- | P(subject) = { suspended intents for this subject }
 -- | ```
 -- |
 -- | ## フィールド
 -- |
--- | - id: ステージング ID
+-- | - id: 懸濁 ID
 -- | - state: 進行状態（Pending / Processing / Completed）
--- | - stagedIntents: Subject ごとのステージングされた Intent
+-- | - suspendedIntents: Subject ごとの懸濁された Intent
 -- | - createdAt: 作成時刻
 -- | - completedAt: 完了時刻（Completed 時に設定）
 -- | - outcome: 結果（Completed 時に設定）
 -- | - targetWorld: Intent が依拠する World（IntentContext の target）
 -- | - preservedZippers: 異常実行時に保存された IntentZipper（Json エンコード）
 type Presheaf =
-  { id :: StagingId
-  , state :: StagingState
-  , stagedIntents :: Map SubjectId (Array Json)
+  { id :: SuspensionId
+  , state :: SuspensionState
+  , suspendedIntents :: Map SubjectId (Array Json)
   , createdAt :: Timestamp
   , completedAt :: Maybe Timestamp
-  , outcome :: Maybe StagingOutcome  -- 完了時に設定
+  , outcome :: Maybe SuspensionOutcome  -- 完了時に設定
   , targetWorld :: World             -- Intent が依拠する World
   , preservedZippers :: Array Json   -- 異常実行時の IntentZipper 保存
   }
@@ -180,11 +188,11 @@ type Presheaf =
 -- | targetWorld は Intent が依拠する法的文脈を指定する。
 -- | Sedimentation 時に Attractor の現在の World と比較され、
 -- | Connection が検証される。
-emptyPresheaf :: StagingId -> Timestamp -> World -> Presheaf
+emptyPresheaf :: SuspensionId -> Timestamp -> World -> Presheaf
 emptyPresheaf sid ts world =
   { id: sid
   , state: Pending
-  , stagedIntents: Map.empty
+  , suspendedIntents: Map.empty
   , createdAt: ts
   , completedAt: Nothing
   , outcome: Nothing
@@ -192,16 +200,16 @@ emptyPresheaf sid ts world =
   , preservedZippers: []
   }
 
--- | Intent をステージング
+-- | Intent を懸濁
 -- |
 -- | まだ層化されていない状態で Intent を蓄積する。
-stage :: SubjectId -> Json -> Presheaf -> Presheaf
-stage subjectId intent presheaf =
-  let current = Map.lookup subjectId presheaf.stagedIntents
+suspend :: SubjectId -> Json -> Presheaf -> Presheaf
+suspend subjectId intent presheaf =
+  let current = Map.lookup subjectId presheaf.suspendedIntents
       updated = case current of
         Nothing -> [intent]
         Just existing -> existing <> [intent]
-  in presheaf { stagedIntents = Map.insert subjectId updated presheaf.stagedIntents }
+  in presheaf { suspendedIntents = Map.insert subjectId updated presheaf.suspendedIntents }
 
 -- | Presheaf を完了状態にする
 -- |
@@ -210,7 +218,7 @@ stage subjectId intent presheaf =
 -- | - Sedimented: 正常に沈殿
 -- | - Abandoned: ユーザーによる取り消し
 -- | - Rejected: 判例（Cognition が崩落しなかった）
-complete :: Timestamp -> StagingOutcome -> Presheaf -> Presheaf
+complete :: Timestamp -> SuspensionOutcome -> Presheaf -> Presheaf
 complete ts result presheaf = presheaf
   { state = Completed
   , completedAt = Just ts

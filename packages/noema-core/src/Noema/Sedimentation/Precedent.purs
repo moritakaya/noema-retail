@@ -22,7 +22,7 @@
 -- | ## 使用シナリオ
 -- |
 -- | 1. **Intent 棄却時**:
--- |    - stagingId で保留中の Intent を識別
+-- |    - suspensionId で懸濁中の Intent を識別
 -- |    - rejectionReason に Curved/Critical の理由を記録
 -- |
 -- | 2. **Nomos 改訂検討時**:
@@ -63,7 +63,7 @@ import Noema.Topos.Nomos (NomosVersion, World, Reason, ConnectionType(..), verif
 -- |
 -- | ## フィールド
 -- |
--- | - stagingId: StagingArea での保留 ID
+-- | - suspensionId: 懸濁環境での保留 ID
 -- | - nomosVersion: 棄却時の Nomos バージョン
 -- | - rejectionReason: 棄却理由（Curved/Critical の Reason）
 -- | - rejectedAt: 棄却時刻
@@ -76,7 +76,7 @@ import Noema.Topos.Nomos (NomosVersion, World, Reason, ConnectionType(..), verif
 -- | - Intent の型が Vocabulary によって異なるため
 -- | - 将来の分析・再評価のために構造を保存
 type PrecedentRecord =
-  { stagingId :: String
+  { suspensionId :: String
   , nomosVersion :: NomosVersion
   , rejectionReason :: Reason
   , rejectedAt :: Timestamp
@@ -86,7 +86,7 @@ type PrecedentRecord =
 
 -- | PrecedentRecord を作成
 mkPrecedentRecord
-  :: String       -- ^ stagingId
+  :: String       -- ^ suspensionId
   -> NomosVersion -- ^ nomosVersion
   -> Reason       -- ^ rejectionReason
   -> Timestamp    -- ^ rejectedAt
@@ -94,7 +94,7 @@ mkPrecedentRecord
   -> World        -- ^ world
   -> PrecedentRecord
 mkPrecedentRecord sid nv reason ts intent world =
-  { stagingId: sid
+  { suspensionId: sid
   , nomosVersion: nv
   , rejectionReason: reason
   , rejectedAt: ts

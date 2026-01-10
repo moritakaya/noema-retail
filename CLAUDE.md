@@ -108,7 +108,7 @@ packages/
 │   │   │   ├── Topos/             # トポス構造（内的）
 │   │   │   │   ├── Situs.purs     # 空間座標（Site の点）
 │   │   │   │   ├── Nomos.purs     # 法座標（被覆構造）
-│   │   │   │   └── Presheaf.purs  # ステージング（前層）
+│   │   │   │   └── Presheaf.purs  # 懸濁（前層）
 │   │   │   ├── Horizont/          # 地平線（外的）
 │   │   │   │   └── Carrier.purs   # 外部接続の担体
 │   │   │   ├── Vorzeichnung/      # 予描図式（左随伴）
@@ -324,7 +324,7 @@ Thing（物）: 意志を持たない → Subject に包摂される
 Situs = 空間座標（Site の点、DO の ID）
 Nomos = 法座標（本則 + 附則）
 World = (NomosVersion, region, timestamp)
-Presheaf = 前層（ステージング環境）
+Presheaf = 前層（懸濁環境）
 
 Base 圏: DO のネットワーク（水平射 = RPC）
 Fiber 圏: DO 内の状態空間（垂直射 = Sediment）
@@ -367,7 +367,7 @@ Noema には「エラー」という概念はない。
 Cognition が正常に崩落しなかったケースは「判例」として記録される。
 
 ```purescript
-data StagingOutcome
+data SuspensionOutcome
   = Sedimented SedimentId World  -- 正常に沈殿
   | Abandoned                     -- ユーザーによる取り消し
   | Rejected World Reason         -- 判例

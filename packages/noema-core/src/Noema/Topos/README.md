@@ -19,14 +19,14 @@ Sheaf（層）= Sedimentation の結果
 | **Situs** | Site C の対象（点） | DO の識別子 |
 | **Nomos** | 被覆構造（Grothendieck topology） | 法の構造（本則 + 附則） |
 | **World** | Site の特定の点における法的文脈 | (NomosVersion, region, timestamp) |
-| **Presheaf** | 前層 Set^{C^op} | ステージング環境 |
+| **Presheaf** | 前層 Set^{C^op} | 懸濁環境 |
 | **Connection** | 位相論的接続 | Nomos バージョン間の移行検証 |
 
 ## 主要コンポーネント
 
 - `Situs.purs`: 空間座標（Site の点、DO の識別子）
 - `Nomos.purs`: 法座標（被覆構造、附則、Connection）
-- `Presheaf.purs`: ステージング環境（層化前の状態）
+- `Presheaf.purs`: 懸濁環境（層化前の状態）
 
 ## グロタンディーク構成との対応
 
@@ -41,7 +41,7 @@ Sheaf（層）= Sedimentation の結果
 │                                                             │
 │  Presheaf 圏 Set^{C^op}                                    │
 │  ├── 対象: 前層 P: C^op → Set                              │
-│  └── ステージング環境として機能                             │
+│  └── 懸濁環境として機能                                     │
 │                                                             │
 │  層化関手 a: Presheaf → Sheaf                              │
 │  ├── Sedimentation により実現                               │
@@ -129,7 +129,7 @@ Noema には「エラー」という概念はない。
 Cognition が正常に崩落しなかったケースは「判例」として記録される。
 
 ```purescript
-data StagingOutcome
+data SuspensionOutcome
   = Sedimented SedimentId World  -- 正常に沈殿
   | Abandoned                     -- ユーザーによる取り消し
   | Rejected World Reason         -- 判例
@@ -222,7 +222,7 @@ Cognition を通じて層（Sheaf = 事実）へと崩落する。
 ```purescript
 import Noema.Topos.Situs (SubjectId, ThingId, mkSubjectId, mkTimestamp)
 import Noema.Topos.Nomos (NomosVersion(..), World, mkWorld, verifyConnection, ConnectionType(..))
-import Noema.Topos.Presheaf (Presheaf, emptyPresheaf, stage, complete, StagingOutcome(..))
+import Noema.Topos.Presheaf (Presheaf, emptyPresheaf, suspend, complete, SuspensionOutcome(..))
 
 -- Subject を識別
 warehouseId :: SubjectId
@@ -232,9 +232,9 @@ warehouseId = mkSubjectId "warehouse-001"
 currentWorld :: World
 currentWorld = mkWorld (NomosVersion "1.0.0") (mkTimestamp 1704067200000.0)
 
--- Presheaf にステージング
-stagedPresheaf :: Presheaf
-stagedPresheaf = stage warehouseId intentJson (emptyPresheaf stagingId timestamp currentWorld)
+-- Presheaf に懸濁
+suspendedPresheaf :: Presheaf
+suspendedPresheaf = suspend warehouseId intentJson (emptyPresheaf suspensionId timestamp currentWorld)
 
 -- Connection を検証
 case verifyConnection targetWorld currentWorld of
