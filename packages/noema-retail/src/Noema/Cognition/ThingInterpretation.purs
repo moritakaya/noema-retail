@@ -84,7 +84,9 @@ import Noema.Vorzeichnung.Vocabulary.ThingF
   , SitusChange
   , PendingIntent
   , ProtentionId(..)
-  , ChangeReason(..)
+  , ChangeReason
+  , getReasonType
+  , getReasonDetail
   )
 import Noema.Vorzeichnung.Intent (Intent, liftEffect)
 import Noema.Cognition.Interpretation (Interpretation, realizeInterpretation)
@@ -311,8 +313,8 @@ interpretThingF env = case _ of
           , unsafeToForeign tidStr
           , unsafeToForeign (unwrapSubjectId change.from)
           , unsafeToForeign (unwrapSubjectId change.to)
-          , unsafeToForeign (changeReasonType change.reason)
-          , unsafeToForeign (changeReasonDetail change.reason)
+          , unsafeToForeign (getReasonType change.reason)
+          , unsafeToForeign (changeReasonDetailForSql change.reason)
           , unsafeToForeign (maybeToForeign (map show change.contractRef))
           , unsafeToForeign (unwrap now)
           ]
@@ -505,23 +507,14 @@ recordSediment env thingId intentType payload ts = do
 
   pure (mkSedimentId nextSeq)
 
--- | ChangeReason の型を取得
-changeReasonType :: ChangeReason -> String
-changeReasonType = case _ of
-  Sale _ -> "sale"
-  Purchase _ -> "purchase"
-  Transfer -> "transfer"
-  Return _ -> "return"
-  Adjustment _ -> "adjustment"
-
--- | ChangeReason の詳細を取得
-changeReasonDetail :: ChangeReason -> String
-changeReasonDetail = case _ of
-  Sale cid -> show cid
-  Purchase cid -> show cid
-  Transfer -> ""
-  Return cid -> show cid
-  Adjustment reason -> reason
+-- | ChangeReason の詳細を Foreign に変換
+-- |
+-- | getReasonDetail が Maybe String を返すので、
+-- | SQLite 用に空文字列にフォールバックする。
+changeReasonDetailForSql :: ChangeReason -> String
+changeReasonDetailForSql cr = case getReasonDetail cr of
+  Just detail -> detail
+  Nothing -> ""
 
 -- | Maybe を Foreign に変換
 maybeToForeign :: forall a. Maybe a -> Foreign

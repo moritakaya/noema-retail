@@ -28,6 +28,12 @@ module Noema.Vorzeichnung.Vocabulary.ThingF
   , ThingF(..)
     -- * Intent 型
   , ThingIntent
+    -- * ChangeReason ヘルパー（ドメイン非依存）
+  , mkChangeReason
+  , getReasonType
+  , getReasonDetail
+  , getReasonContractId
+  , transferReason
     -- * スマートコンストラクタ（属性）
   , getProperty
   , setProperty
@@ -47,10 +53,14 @@ module Noema.Vorzeichnung.Vocabulary.ThingF
   ) where
 
 import Prelude
-import Data.Maybe (Maybe)
+import Data.Maybe (Maybe(..))
+import Data.Tuple.Nested ((/\))
 import Data.Map (Map)
-import Data.Argonaut.Core (Json)
-import Noema.Topos.Situs (ThingId, SubjectId, SedimentId, Timestamp, ContractId)
+import Data.Newtype (class Newtype)
+import Data.Argonaut.Core (Json, jsonNull, stringify, caseJsonObject, toObject, fromObject, fromString, toString)
+import Data.Argonaut.Encode (encodeJson)
+import Foreign.Object as Object
+import Noema.Topos.Situs (ThingId, SubjectId, SedimentId, Timestamp, ContractId, mkContractId, unwrapContractId)
 import Noema.Vorzeichnung.Intent (Intent, liftEffect)
 
 -- | Property のキー
@@ -69,22 +79,69 @@ type TimeRange =
   , to :: Timestamp
   }
 
--- | 位置変更の理由
-data ChangeReason
-  = Sale ContractId       -- 販売
-  | Purchase ContractId   -- 購入
-  | Transfer              -- 移動（内部）
-  | Return ContractId     -- 返品
-  | Adjustment String     -- 調整（棚卸等）
+-- | 位置変更の理由（ドメイン非依存）
+-- |
+-- | Json として格納され、各ドメインで解釈される。
+-- | noema-retail では RetailChangeReason への変換を提供。
+-- |
+-- | ## 構造
+-- |
+-- | ```json
+-- | { "type": "transfer", "detail": null, "contractId": null }
+-- | { "type": "sale", "detail": null, "contractId": "contract-123" }
+-- | ```
+newtype ChangeReason = ChangeReason Json
 
 derive instance eqChangeReason :: Eq ChangeReason
+derive instance newtypeChangeReason :: Newtype ChangeReason _
 
 instance showChangeReason :: Show ChangeReason where
-  show (Sale cid) = "(Sale " <> show cid <> ")"
-  show (Purchase cid) = "(Purchase " <> show cid <> ")"
-  show Transfer = "Transfer"
-  show (Return cid) = "(Return " <> show cid <> ")"
-  show (Adjustment reason) = "(Adjustment " <> reason <> ")"
+  show (ChangeReason json) = "(ChangeReason " <> stringify json <> ")"
+
+-- | ChangeReason を作成
+-- |
+-- | reasonType と detail、contractId を指定して作成する。
+-- | 各ドメインはこの関数を使って具体的な理由を構築する。
+mkChangeReason :: String -> Maybe String -> Maybe ContractId -> ChangeReason
+mkChangeReason reasonType detail contractRef =
+  ChangeReason $ fromObject $ Object.fromFoldable
+    [ "type" /\ fromString reasonType
+    , "detail" /\ case detail of
+        Just d -> fromString d
+        Nothing -> jsonNull
+    , "contractId" /\ case contractRef of
+        Just cid -> fromString (unwrapContractId cid)
+        Nothing -> jsonNull
+    ]
+
+-- | ChangeReason から type を取得
+getReasonType :: ChangeReason -> String
+getReasonType (ChangeReason json) =
+  caseJsonObject "unknown" extractType json
+  where
+    extractType obj = case Object.lookup "type" obj >>= toString of
+      Just t -> t
+      Nothing -> "unknown"
+
+-- | ChangeReason から detail を取得
+getReasonDetail :: ChangeReason -> Maybe String
+getReasonDetail (ChangeReason json) =
+  case toObject json of
+    Just obj -> Object.lookup "detail" obj >>= toString
+    Nothing -> Nothing
+
+-- | ChangeReason から contractId を取得
+getReasonContractId :: ChangeReason -> Maybe ContractId
+getReasonContractId (ChangeReason json) =
+  case toObject json of
+    Just obj -> Object.lookup "contractId" obj >>= toString >>= \s -> Just (mkContractId s)
+    Nothing -> Nothing
+
+-- | 内部移動用の定義済み ChangeReason
+-- |
+-- | ドメイン非依存の「移動」を表す。
+transferReason :: ChangeReason
+transferReason = mkChangeReason "transfer" Nothing Nothing
 
 -- | 位置変更の記録
 -- | ※ Situs = Topos/Situs モジュールとの一貫性のため locus から改名

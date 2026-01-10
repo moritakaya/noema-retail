@@ -20,7 +20,8 @@ import Effect (Effect)
 import Effect.Console (log)
 
 import Noema.Topos.Situs (Timestamp(..), mkThingId, mkSubjectId)
-import Noema.Vorzeichnung.Vocabulary.ThingF (PropertyKey(..), ChangeReason(..))
+import Noema.Vorzeichnung.Vocabulary.ThingF (PropertyKey(..), getReasonType)
+import Noema.Vorzeichnung.Vocabulary.RetailChangeReason (RetailChangeReason(..), toChangeReason)
 import Noema.Vorzeichnung.Vocabulary.Item
   ( RetailPropertyKey(..)
   , ItemCategory(..)
@@ -254,17 +255,18 @@ test_item_event_situs_changed = do
     from = mkSubjectId "warehouse-001"
     to = mkSubjectId "store-001"
     ts = Timestamp 1704585600000.0
+    transferReason = toChangeReason Transfer
 
     event = SitusChanged
       { thingId: tid
       , from: from
       , to: to
-      , reason: Transfer
+      , reason: transferReason
       , changedAt: ts
       }
 
   pure $ case event of
-    SitusChanged r -> r.from == from && r.to == to && r.reason == Transfer
+    SitusChanged r -> r.from == from && r.to == to && getReasonType r.reason == "transfer"
     _ -> false
 
 -- | ItemEvent の Show

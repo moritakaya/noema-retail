@@ -22,11 +22,16 @@ import Effect.Console (log)
 import Noema.Topos.Situs (SedimentId(..), Timestamp(..), mkSubjectId, mkThingId, mkContractId)
 import Noema.Vorzeichnung.Vocabulary.ThingF
   ( PropertyKey(..)
-  , ChangeReason(..)
+  , ChangeReason
   , SitusChange
   , ThingSnapshot
   , ThingState
   , ProtentionId(..)
+  , mkChangeReason
+  , getReasonType
+  , getReasonDetail
+  , getReasonContractId
+  , transferReason
   )
 
 -- ============================================================
@@ -73,25 +78,33 @@ test_change_reason_equality = do
     cid1 = mkContractId "contract-001"
     cid2 = mkContractId "contract-002"
 
-    r1 = Sale cid1
-    r2 = Sale cid1
-    r3 = Sale cid2
-    r4 = Transfer
+    r1 = mkChangeReason "sale" Nothing (Just cid1)
+    r2 = mkChangeReason "sale" Nothing (Just cid1)
+    r3 = mkChangeReason "sale" Nothing (Just cid2)
+    r4 = transferReason
 
-  pure $ (r1 == r2) && (r1 /= r3) && (r1 /= r4) && (Transfer == Transfer)
+  pure $ (r1 == r2) && (r1 /= r3) && (r1 /= r4) && (transferReason == transferReason)
 
--- | ChangeReason の Show
+-- | ChangeReason の Show と getReasonType
 test_change_reason_show :: Effect Boolean
 test_change_reason_show = do
   let
     cid = mkContractId "contract-001"
 
+    saleReason = mkChangeReason "sale" Nothing (Just cid)
+    purchaseReason = mkChangeReason "purchase" Nothing (Just cid)
+    returnReason = mkChangeReason "return" Nothing (Just cid)
+    adjustmentReason = mkChangeReason "adjustment" (Just "棚卸") Nothing
+
     results =
-      [ show (Sale cid) == "(Sale (ContractId contract-001))"
-      , show (Purchase cid) == "(Purchase (ContractId contract-001))"
-      , show Transfer == "Transfer"
-      , show (Return cid) == "(Return (ContractId contract-001))"
-      , show (Adjustment "棚卸") == "(Adjustment 棚卸)"
+      [ getReasonType saleReason == "sale"
+      , getReasonType purchaseReason == "purchase"
+      , getReasonType transferReason == "transfer"
+      , getReasonType returnReason == "return"
+      , getReasonType adjustmentReason == "adjustment"
+      , getReasonDetail adjustmentReason == Just "棚卸"
+      , getReasonContractId saleReason == Just cid
+      , getReasonContractId transferReason == Nothing
       ]
 
   pure (and results)
@@ -107,19 +120,20 @@ test_situs_change_structure = do
     fromSubject = mkSubjectId "warehouse-001"
     toSubject = mkSubjectId "store-001"
     cid = mkContractId "contract-001"
+    saleReason = mkChangeReason "sale" Nothing (Just cid)
 
     change :: SitusChange
     change =
       { from: fromSubject
       , to: toSubject
-      , reason: Sale cid
+      , reason: saleReason
       , contractRef: Just cid
       }
 
   pure $
     change.from == fromSubject &&
     change.to == toSubject &&
-    change.reason == Sale cid &&
+    getReasonType change.reason == "sale" &&
     change.contractRef == Just cid
 
 -- | SitusChange の contractRef なし
@@ -130,11 +144,11 @@ test_situs_change_no_contract = do
     change =
       { from: mkSubjectId "warehouse-001"
       , to: mkSubjectId "warehouse-002"
-      , reason: Transfer
+      , reason: transferReason
       , contractRef: Nothing
       }
 
-  pure $ change.reason == Transfer && change.contractRef == Nothing
+  pure $ getReasonType change.reason == "transfer" && change.contractRef == Nothing
 
 -- ============================================================
 -- ThingSnapshot テスト
