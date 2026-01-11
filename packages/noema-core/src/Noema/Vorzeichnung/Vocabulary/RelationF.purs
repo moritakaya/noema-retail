@@ -1,7 +1,6 @@
 -- | Noema Vocabulary: RelationF（関係性）
 -- |
 -- | Subject と Thing 間の関係を定義する。
--- | 所有権、占有権、担保権などの法的関係を含む。
 -- |
 -- | ## 圏論的位置づけ
 -- |
@@ -12,11 +11,30 @@
 -- |
 -- | 所有権等の Master Data は Thing を包摂する Subject が保持。
 -- | Container の Contents は View（キャッシュ）。
+-- |
+-- | ## ドメイン非依存設計
+-- |
+-- | RelationKind は抽象的な Json newtype。
+-- | 具体的な関係種別（Owns, Reserves 等）は各ドメイン層で定義する。
+-- | noema-retail では RetailRelationKind として具体化。
 module Noema.Vorzeichnung.Vocabulary.RelationF
-  ( RelationKind(..)
+  ( -- * RelationKind（抽象）
+    RelationKind(..)
+  , mkRelationKind
+  , getRelationKindType
+  , getRelationKindCategory
+    -- * 定義済み定数（ドメイン非依存）
+  , containmentKind
+  , observationKind
+  , agencyKind
+  , restrictionKind
+    -- * ChangeType（抽象）
+  , ChangeType(..)
+  , mkChangeType
+  , getChangeType
+    -- * その他の型
   , SecurityType(..)
   , AgencyScope(..)
-  , ChangeType(..)
   , ConditionType(..)
   , RelationMetadata(..)
   , Relation
@@ -29,72 +47,97 @@ module Noema.Vorzeichnung.Vocabulary.RelationF
   ) where
 
 import Prelude
-import Data.Maybe (Maybe)
-import Data.Argonaut.Core (Json)
+import Data.Maybe (Maybe(..))
+import Data.Newtype (class Newtype)
+import Data.Argonaut.Core (Json, jsonNull, stringify, fromObject, fromString, toObject, toString)
+import Data.Tuple.Nested ((/\))
+import Foreign.Object as Object
 import Noema.Topos.Situs
   ( ThingId, SubjectId, RelationId, SedimentId
   , Timestamp, ContractId, Quantity
   )
 
--- | 関係の種別
-data RelationKind
-  -- 包摂関係（空間的）
-  = Contains      -- Subject が Thing を物理的に含む
-  | Guards        -- Subject が Thing を包摂する
-
-  -- 権利関係（法的）
-  | Owns          -- 所有権
-  | Possesses     -- 占有権
-  | Claims        -- 請求権
-  | Secures       -- 担保権
-  | SharedBy      -- 共有
-
-  -- 引当関係（時間的）
-  | Reserves      -- 引当（一時的確保）
-  | Commits       -- 確約（確定的確保）
-  | Intends       -- 意図（購入意思の表明、引当なし）
-
-  -- 移動関係（過渡的）
-  | Transports    -- 輸送中
-  | Consigns      -- 委託中
-
-  -- 構成関係（構造的）
-  | ComposedOf    -- 部品構成
-  | BundledWith   -- セット構成
-  | Substitutes   -- 代替関係
-
-  -- 観測関係（認識的）
-  | Observes      -- Channel からの観測
-  | Tracks        -- 追跡
-
-  -- 代理関係（行為的）
-  | ActsFor       -- 代理
-
-  -- 制限関係（消極的）
-  | Restricts     -- 処分制限
+-- | 関係の種別（ドメイン非依存）
+-- |
+-- | Json として格納され、各ドメインで解釈される。
+-- | noema-retail では RetailRelationKind への変換を提供。
+-- |
+-- | ## 構造
+-- |
+-- | ```json
+-- | { "type": "containment", "category": "spatial", "subtype": null }
+-- | { "type": "owns", "category": "rights", "subtype": null }
+-- | ```
+-- |
+-- | ## カテゴリ
+-- |
+-- | - spatial: 空間的関係（包摂）
+-- | - rights: 権利関係
+-- | - temporal: 時間的関係（引当）
+-- | - transitive: 過渡的関係（移動）
+-- | - structural: 構造的関係（構成）
+-- | - cognitive: 認識的関係（観測）
+-- | - performative: 行為的関係（代理）
+-- | - negative: 消極的関係（制限）
+newtype RelationKind = RelationKind Json
 
 derive instance eqRelationKind :: Eq RelationKind
+derive instance newtypeRelationKind :: Newtype RelationKind _
 
 instance showRelationKind :: Show RelationKind where
-  show Contains = "Contains"
-  show Guards = "Guards"
-  show Owns = "Owns"
-  show Possesses = "Possesses"
-  show Claims = "Claims"
-  show Secures = "Secures"
-  show SharedBy = "SharedBy"
-  show Reserves = "Reserves"
-  show Commits = "Commits"
-  show Intends = "Intends"
-  show Transports = "Transports"
-  show Consigns = "Consigns"
-  show ComposedOf = "ComposedOf"
-  show BundledWith = "BundledWith"
-  show Substitutes = "Substitutes"
-  show Observes = "Observes"
-  show Tracks = "Tracks"
-  show ActsFor = "ActsFor"
-  show Restricts = "Restricts"
+  show (RelationKind json) = "(RelationKind " <> stringify json <> ")"
+
+-- | RelationKind を作成
+-- |
+-- | kindType と category を指定して作成する。
+-- | 各ドメインはこの関数を使って具体的な関係種別を構築する。
+mkRelationKind :: String -> String -> Maybe String -> RelationKind
+mkRelationKind kindType category subtype =
+  RelationKind $ fromObject $ Object.fromFoldable
+    [ "type" /\ fromString kindType
+    , "category" /\ fromString category
+    , "subtype" /\ case subtype of
+        Just s -> fromString s
+        Nothing -> jsonNull
+    ]
+
+-- | RelationKind から type を取得
+getRelationKindType :: RelationKind -> String
+getRelationKindType (RelationKind json) =
+  case toObject json of
+    Just obj -> case Object.lookup "type" obj >>= toString of
+      Just t -> t
+      Nothing -> "unknown"
+    Nothing -> "unknown"
+
+-- | RelationKind から category を取得
+getRelationKindCategory :: RelationKind -> String
+getRelationKindCategory (RelationKind json) =
+  case toObject json of
+    Just obj -> case Object.lookup "category" obj >>= toString of
+      Just c -> c
+      Nothing -> "unknown"
+    Nothing -> "unknown"
+
+-- ============================================================
+-- 定義済み定数（ドメイン非依存の基本概念）
+-- ============================================================
+
+-- | 包含関係（空間的）
+containmentKind :: RelationKind
+containmentKind = mkRelationKind "containment" "spatial" Nothing
+
+-- | 観測関係（認識的）
+observationKind :: RelationKind
+observationKind = mkRelationKind "observation" "cognitive" Nothing
+
+-- | 代理関係（行為的）
+agencyKind :: RelationKind
+agencyKind = mkRelationKind "agency" "performative" Nothing
+
+-- | 制限関係（消極的）
+restrictionKind :: RelationKind
+restrictionKind = mkRelationKind "restriction" "negative" Nothing
 
 -- | 担保権の種類
 data SecurityType
@@ -114,14 +157,32 @@ data AgencyScope
 
 derive instance eqAgencyScope :: Eq AgencyScope
 
--- | 通知すべき変化の種類
-data ChangeType
-  = PriceChanged
-  | AvailabilityChanged
-  | PropertyChanged
-  | Discontinued
+-- | 通知すべき変化の種類（ドメイン非依存）
+-- |
+-- | 文字列として格納され、各ドメインで解釈される。
+-- | noema-retail では RetailChangeType として具体化。
+-- |
+-- | ## 使用例
+-- |
+-- | ```purescript
+-- | let priceChange = mkChangeType "price_changed"
+-- | getChangeType priceChange == "price_changed"
+-- | ```
+newtype ChangeType = ChangeType String
 
 derive instance eqChangeType :: Eq ChangeType
+derive instance newtypeChangeType :: Newtype ChangeType _
+
+instance showChangeType :: Show ChangeType where
+  show (ChangeType s) = "(ChangeType " <> show s <> ")"
+
+-- | ChangeType を作成
+mkChangeType :: String -> ChangeType
+mkChangeType = ChangeType
+
+-- | ChangeType から型を取得
+getChangeType :: ChangeType -> String
+getChangeType (ChangeType s) = s
 
 -- | 条件の種類
 data ConditionType

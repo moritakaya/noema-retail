@@ -19,15 +19,24 @@ import Effect.Console (log)
 
 import Noema.Topos.Situs (Timestamp(..), Quantity, mkSubjectId, mkThingId, mkContractId, mkRelationId, mkQuantity)
 import Noema.Vorzeichnung.Vocabulary.RelationF
-  ( RelationKind(..)
+  ( RelationKind
   , SecurityType(..)
   , AgencyScope(..)
-  , ChangeType(..)
+  , ChangeType
   , ConditionType(..)
   , RelationMetadata(..)
   , Relation
   , RelationInit
   , OwnershipTransfer
+  , mkRelationKind
+  , getRelationKindType
+  , getRelationKindCategory
+  , containmentKind
+  , observationKind
+  , agencyKind
+  , restrictionKind
+  , mkChangeType
+  , getChangeType
   )
 
 -- ============================================================
@@ -37,38 +46,42 @@ import Noema.Vorzeichnung.Vocabulary.RelationF
 -- | RelationKind の等値性
 test_relation_kind_equality :: Effect Boolean
 test_relation_kind_equality = do
-  pure $
-    Owns == Owns &&
-    Possesses == Possesses &&
-    Owns /= Possesses &&
-    Contains /= Guards &&
-    Reserves == Reserves &&
-    Intends /= Commits
+  let
+    owns1 = mkRelationKind "owns" "rights" Nothing
+    owns2 = mkRelationKind "owns" "rights" Nothing
+    possesses = mkRelationKind "possesses" "rights" Nothing
+    reserves1 = mkRelationKind "reserves" "temporal" Nothing
+    reserves2 = mkRelationKind "reserves" "temporal" Nothing
+    commits = mkRelationKind "commits" "temporal" Nothing
 
--- | RelationKind の Show
+  pure $
+    owns1 == owns2 &&
+    owns1 /= possesses &&
+    reserves1 == reserves2 &&
+    reserves1 /= commits &&
+    containmentKind == containmentKind
+
+-- | RelationKind の Show と getRelationKindType
 test_relation_kind_show :: Effect Boolean
 test_relation_kind_show = do
   let
+    owns = mkRelationKind "owns" "rights" Nothing
+    reserves = mkRelationKind "reserves" "temporal" Nothing
+    transports = mkRelationKind "transports" "transitive" Nothing
+
     results =
-      [ show Contains == "Contains"
-      , show Guards == "Guards"
-      , show Owns == "Owns"
-      , show Possesses == "Possesses"
-      , show Claims == "Claims"
-      , show Secures == "Secures"
-      , show SharedBy == "SharedBy"
-      , show Reserves == "Reserves"
-      , show Commits == "Commits"
-      , show Intends == "Intends"
-      , show Transports == "Transports"
-      , show Consigns == "Consigns"
-      , show ComposedOf == "ComposedOf"
-      , show BundledWith == "BundledWith"
-      , show Substitutes == "Substitutes"
-      , show Observes == "Observes"
-      , show Tracks == "Tracks"
-      , show ActsFor == "ActsFor"
-      , show Restricts == "Restricts"
+      [ getRelationKindType containmentKind == "containment"
+      , getRelationKindCategory containmentKind == "spatial"
+      , getRelationKindType observationKind == "observation"
+      , getRelationKindCategory observationKind == "cognitive"
+      , getRelationKindType agencyKind == "agency"
+      , getRelationKindType restrictionKind == "restriction"
+      , getRelationKindType owns == "owns"
+      , getRelationKindCategory owns == "rights"
+      , getRelationKindType reserves == "reserves"
+      , getRelationKindCategory reserves == "temporal"
+      , getRelationKindType transports == "transports"
+      , getRelationKindCategory transports == "transitive"
       ]
 
   pure (and results)
@@ -110,12 +123,20 @@ test_agency_scope_equality = do
 -- | ChangeType の等値性
 test_change_type_equality :: Effect Boolean
 test_change_type_equality = do
+  let
+    priceChanged1 = mkChangeType "price_changed"
+    priceChanged2 = mkChangeType "price_changed"
+    availabilityChanged = mkChangeType "availability_changed"
+    propertyChanged = mkChangeType "property_changed"
+    discontinued = mkChangeType "discontinued"
+
   pure $
-    PriceChanged == PriceChanged &&
-    AvailabilityChanged == AvailabilityChanged &&
-    PropertyChanged == PropertyChanged &&
-    Discontinued == Discontinued &&
-    PriceChanged /= AvailabilityChanged
+    priceChanged1 == priceChanged2 &&
+    getChangeType priceChanged1 == "price_changed" &&
+    getChangeType availabilityChanged == "availability_changed" &&
+    getChangeType propertyChanged == "property_changed" &&
+    getChangeType discontinued == "discontinued" &&
+    priceChanged1 /= availabilityChanged
 
 -- ============================================================
 -- ConditionType テスト
@@ -202,10 +223,12 @@ test_expiration_meta = do
 test_intends_meta :: Effect Boolean
 test_intends_meta = do
   let
-    meta = IntendsMeta { quantity: mkQuantity 5, notifyOn: [PriceChanged, AvailabilityChanged] }
+    priceChanged = mkChangeType "price_changed"
+    availabilityChanged = mkChangeType "availability_changed"
+    meta = IntendsMeta { quantity: mkQuantity 5, notifyOn: [priceChanged, availabilityChanged] }
 
   case meta of
-    IntendsMeta r -> pure $ r.quantity == mkQuantity 5 && r.notifyOn == [PriceChanged, AvailabilityChanged]
+    IntendsMeta r -> pure $ r.quantity == mkQuantity 5 && r.notifyOn == [priceChanged, availabilityChanged]
     _ -> pure false
 
 -- ============================================================
@@ -221,11 +244,12 @@ test_relation_structure = do
     tid = mkThingId "thing-001"
     cid = mkContractId "contract-001"
     ts = Timestamp 1704067200000.0
+    ownsKind = mkRelationKind "owns" "rights" Nothing
 
     relation :: Relation
     relation =
       { id: rid
-      , kind: Owns
+      , kind: ownsKind
       , from: sid
       , to: tid
       , metadata: Nothing
@@ -240,7 +264,7 @@ test_relation_structure = do
     Nothing ->
       pure $
         relation.id == rid &&
-        relation.kind == Owns &&
+        getRelationKindType relation.kind == "owns" &&
         relation.from == sid &&
         relation.to == tid &&
         relation.validFrom == ts &&
@@ -257,11 +281,12 @@ test_relation_with_metadata = do
     tid = mkThingId "thing-001"
     ts = Timestamp 1704067200000.0
     meta = SharedByMeta { share: 0.333 }
+    sharedByKind = mkRelationKind "shared_by" "rights" Nothing
 
     relation :: Relation
     relation =
       { id: rid
-      , kind: SharedBy
+      , kind: sharedByKind
       , from: sid
       , to: tid
       , metadata: Just meta
@@ -286,10 +311,11 @@ test_relation_init_structure = do
     sid = mkSubjectId "subject-001"
     tid = mkThingId "thing-001"
     ts = Timestamp 1735689600000.0
+    reservesKind = mkRelationKind "reserves" "temporal" Nothing
 
     init :: RelationInit
     init =
-      { kind: Reserves
+      { kind: reservesKind
       , from: sid
       , to: tid
       , metadata: Just (ExpirationMeta { expiresAt: ts })
@@ -298,7 +324,7 @@ test_relation_init_structure = do
       }
 
   pure $
-    init.kind == Reserves &&
+    getRelationKindType init.kind == "reserves" &&
     init.from == sid &&
     init.to == tid &&
     init.validUntil == Just ts

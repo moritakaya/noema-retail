@@ -69,11 +69,11 @@ import Noema.Topos.Situs
   )
 import Noema.Vorzeichnung.Vocabulary.RelationF
   ( RelationF(..)
-  , RelationKind(..)
+  , RelationKind
   , RelationMetadata(..)
   , SecurityType(..)
   , AgencyScope(..)
-  , ChangeType(..)
+  , ChangeType
   , ConditionType(..)
   , Relation
   , RelationInit
@@ -81,6 +81,9 @@ import Noema.Vorzeichnung.Vocabulary.RelationF
   , ObserverContext
   , ThingView
   , IntentionView
+  , mkRelationKind
+  , getRelationKindType
+  , getChangeType
   )
 import Noema.Vorzeichnung.Intent (Intent)
 import Noema.Cognition.Interpretation (Interpretation, realizeInterpretation)
@@ -442,51 +445,19 @@ realizeRelationIntent env intent input =
 -- ============================================================
 
 -- | RelationKind を文字列に変換
+-- |
+-- | noema-core の getRelationKindType を使用。
+-- | DB に格納する際の文字列表現を取得する。
 relationKindToString :: RelationKind -> String
-relationKindToString = case _ of
-  Contains -> "Contains"
-  Guards -> "Guards"
-  Owns -> "Owns"
-  Possesses -> "Possesses"
-  Claims -> "Claims"
-  Secures -> "Secures"
-  SharedBy -> "SharedBy"
-  Reserves -> "Reserves"
-  Commits -> "Commits"
-  Intends -> "Intends"
-  Transports -> "Transports"
-  Consigns -> "Consigns"
-  ComposedOf -> "ComposedOf"
-  BundledWith -> "BundledWith"
-  Substitutes -> "Substitutes"
-  Observes -> "Observes"
-  Tracks -> "Tracks"
-  ActsFor -> "ActsFor"
-  Restricts -> "Restricts"
+relationKindToString = getRelationKindType
 
 -- | 文字列を RelationKind に変換
+-- |
+-- | DB から読み取った文字列を RelationKind に変換。
+-- | noema-core の mkRelationKind を使用し、
+-- | カテゴリは "unknown" として後で RetailRelationKind で解釈する。
 stringToRelationKind :: String -> RelationKind
-stringToRelationKind = case _ of
-  "Contains" -> Contains
-  "Guards" -> Guards
-  "Owns" -> Owns
-  "Possesses" -> Possesses
-  "Claims" -> Claims
-  "Secures" -> Secures
-  "SharedBy" -> SharedBy
-  "Reserves" -> Reserves
-  "Commits" -> Commits
-  "Intends" -> Intends
-  "Transports" -> Transports
-  "Consigns" -> Consigns
-  "ComposedOf" -> ComposedOf
-  "BundledWith" -> BundledWith
-  "Substitutes" -> Substitutes
-  "Observes" -> Observes
-  "Tracks" -> Tracks
-  "ActsFor" -> ActsFor
-  "Restricts" -> Restricts
-  _ -> Contains  -- デフォルト
+stringToRelationKind kindType = mkRelationKind kindType "unknown" Nothing
 
 -- | RelationMetadata を JSON 文字列に変換
 metadataToJsonString :: RelationMetadata -> String
@@ -534,12 +505,10 @@ agencyScopeToString = case _ of
   LimitedAgency -> "LimitedAgency"
 
 -- | ChangeType を文字列に変換
+-- |
+-- | noema-core の getChangeType を使用。
 changeTypeToString :: ChangeType -> String
-changeTypeToString = case _ of
-  PriceChanged -> "PriceChanged"
-  AvailabilityChanged -> "AvailabilityChanged"
-  PropertyChanged -> "PropertyChanged"
-  Discontinued -> "Discontinued"
+changeTypeToString = getChangeType
 
 -- | Maybe を表示
 maybeShow :: forall a. Show a => Maybe a -> String
