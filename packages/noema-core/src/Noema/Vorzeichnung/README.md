@@ -29,6 +29,7 @@ Intent ⊣ Cognition（随伴）
 
 - `Intent.purs`: Arrow-based Intent の定義。Category, Arrow インスタンスを持つが、ArrowChoice は意図的に未実装（分岐禁止）
 - `Combinators.purs`: Intent 合成のためのコンビネータ（dup, swap, both, fanout 等）
+- `Situierung.purs`: Intent の状況付け（World への位置づけ）
 - `Vocabulary/`: 操作の語彙（SubjectF, ThingF, RelationF, ContractF, NoemaF）
 
 ## 設計原則
@@ -57,16 +58,16 @@ getStock tid sid >>> arrIntent _.quantity
 ## 使用例
 
 ```purescript
-import Noema.Vorzeichnung.Intent (Intent, liftEffect, arrIntent, (>>>))
-import Noema.Vorzeichnung.Vocabulary.InventoryF (getStock, setStock)
+import Noema.Vorzeichnung.Intent (Intent, arrIntent, (>>>))
+import Noema.Vorzeichnung.Vocabulary.ThingF (getProperty, getSitus)
 
--- 在庫取得 Intent
-stockIntent :: Intent InventoryF Unit StockInfo
-stockIntent = getStock (ThingId "SKU-001") (mkSubjectId "warehouse-001")
+-- Thing の属性取得 Intent
+propertyIntent :: Intent ThingF Unit PropertyValue
+propertyIntent = getProperty (mkThingId "thing-001") (PropertyKey "price")
 
--- 合成
-pipeline :: Intent InventoryF Unit Quantity
-pipeline = stockIntent >>> arrIntent _.quantity
+-- 合成: 属性取得 → 純粋な変換
+pipeline :: Intent ThingF Unit Number
+pipeline = propertyIntent >>> arrIntent extractNumber
 ```
 
 ## 他のモジュールとの関係
@@ -76,11 +77,14 @@ Vorzeichnung/
 ├── Intent.purs ─────────────────► Cognition/Interpretation.purs
 │   (意志の構造)                        (忘却による解釈)
 │
+├── Situierung.purs                   (World への状況付け)
+│
 └── Vocabulary/
     ├── SubjectF.purs    ─────────► noema-retail/Cognition/SubjectInterpretation.purs
     ├── ThingF.purs      ─────────► noema-retail/Cognition/ThingInterpretation.purs
-    ├── InventoryF.purs  ─────────► noema-retail/Cognition/InventoryInterpretation.purs
-    └── NoemaF.purs      (Coproduct4)
+    ├── RelationF.purs   ─────────► noema-retail/Cognition/RelationInterpretation.purs
+    ├── ContractF.purs   ─────────► noema-retail/Cognition/ContractInterpretation.purs
+    └── NoemaF.purs      (Coproduct4 - 上記4つの合成)
 ```
 
 ## ThingF スマートコンストラクタ
@@ -96,8 +100,29 @@ setProperty :: ThingId -> PropertyKey -> PropertyValue -> ThingIntent Unit Sedim
 getSitus :: ThingId -> ThingIntent Unit SubjectId
 recordSitusChange :: ThingId -> SitusChange -> ThingIntent Unit SedimentId
 
--- 時間構造
+-- 時間構造（Husserl の時間意識）
+-- Retention（把持）: 過去の Snapshot
 getRetention :: ThingId -> Timestamp -> ThingIntent Unit ThingSnapshot
+getRetentionRange :: ThingId -> TimeRange -> ThingIntent Unit (Array ThingSnapshot)
+
+-- Primal（原印象）: 現在の状態
 getPrimal :: ThingId -> ThingIntent Unit ThingState
+
+-- Protention（予持）: 未来の Pending Intent
 registerProtention :: ThingId -> PendingIntent -> ThingIntent Unit ProtentionId
+getProtentions :: ThingId -> ThingIntent Unit (Array PendingIntent)
+realizeProtention :: ProtentionId -> ThingIntent Unit SedimentId
+cancelProtention :: ProtentionId -> ThingIntent Unit SedimentId
+```
+
+## ChangeReason（位置変更理由）
+
+noema-core では抽象的な `newtype ChangeReason = ChangeReason Json` として定義。
+具体的な理由（Sale, Purchase 等）は noema-retail の `RetailChangeReason` で定義される。
+
+```purescript
+-- ドメイン非依存のヘルパー
+mkChangeReason :: String -> Maybe String -> Maybe ContractId -> ChangeReason
+getReasonType :: ChangeReason -> String
+transferReason :: ChangeReason  -- 定義済み定数
 ```
