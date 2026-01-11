@@ -241,7 +241,10 @@ CREATE TABLE relation_sediment (
 );
 ```
 
-## 関係種別（RelationKind）
+## 関係種別（RetailRelationKind）
+
+noema-core の `RelationKind` は抽象型（`newtype RelationKind = RelationKind Json`）。
+小売固有の具体化は `RetailRelationKind` として定義される。
 
 | カテゴリ | 種別 | 意味 |
 |----------|------|------|
@@ -253,6 +256,16 @@ CREATE TABLE relation_sediment (
 | 観測 | Observes, Tracks | 認識的関係 |
 | 代理 | ActsFor | 行為的関係 |
 | 制限 | Restricts | 消極的関係 |
+
+### 抽象→具体の対応
+
+| noema-core（抽象） | noema-retail（具体） | 用途 |
+|--------------------|---------------------|------|
+| `RelationKind` | `RetailRelationKind` | 関係種別 |
+| `ChangeReason` | `RetailChangeReason` | 位置変更理由 |
+| `ChangeType` | `RetailChangeType` | 通知すべき変化 |
+| `SecurityType` | `RetailSecurityType` | 担保権種別 |
+| `AgencyScope` | `RetailAgencyScope` | 代理範囲 |
 
 ## ContractInterpretation の SQLite スキーマ
 
