@@ -21,7 +21,7 @@ import Noema.Topos.Situs (Timestamp(..), Quantity, mkSubjectId, mkThingId, mkCon
 import Noema.Vorzeichnung.Vocabulary.RelationF
   ( RelationKind
   , SecurityType
-  , AgencyScope(..)
+  , AgencyScope
   , ChangeType
   , ConditionType(..)
   , RelationMetadata(..)
@@ -39,6 +39,8 @@ import Noema.Vorzeichnung.Vocabulary.RelationF
   , getChangeType
   , mkSecurityType
   , getSecurityType
+  , mkAgencyScope
+  , getAgencyScope
   )
 
 -- ============================================================
@@ -120,12 +122,19 @@ test_security_type_equality = do
 -- | AgencyScope の等値性
 test_agency_scope_equality :: Effect Boolean
 test_agency_scope_equality = do
+  let
+    general1 = mkAgencyScope "general"
+    general2 = mkAgencyScope "general"
+    specific = mkAgencyScope "specific"
+    limited = mkAgencyScope "limited"
+
   pure $
-    GeneralAgency == GeneralAgency &&
-    SpecificAgency == SpecificAgency &&
-    LimitedAgency == LimitedAgency &&
-    GeneralAgency /= SpecificAgency &&
-    SpecificAgency /= LimitedAgency
+    general1 == general2 &&
+    getAgencyScope general1 == "general" &&
+    getAgencyScope specific == "specific" &&
+    getAgencyScope limited == "limited" &&
+    general1 /= specific &&
+    specific /= limited
 
 -- ============================================================
 -- ChangeType テスト
@@ -190,10 +199,11 @@ test_shared_by_meta = do
 test_acts_for_meta :: Effect Boolean
 test_acts_for_meta = do
   let
-    meta = ActsForMeta { scope: GeneralAgency, disclosed: true }
+    generalAgency = mkAgencyScope "general"
+    meta = ActsForMeta { scope: generalAgency, disclosed: true }
 
   case meta of
-    ActsForMeta r -> pure $ r.scope == GeneralAgency && r.disclosed == true
+    ActsForMeta r -> pure $ getAgencyScope r.scope == "general" && r.disclosed == true
     _ -> pure false
 
 -- | SecuresMeta の構造

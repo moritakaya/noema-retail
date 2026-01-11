@@ -36,8 +36,11 @@ module Noema.Vorzeichnung.Vocabulary.RelationF
   , SecurityType(..)
   , mkSecurityType
   , getSecurityType
-    -- * その他の型
+    -- * AgencyScope（抽象）
   , AgencyScope(..)
+  , mkAgencyScope
+  , getAgencyScope
+    -- * その他の型
   , ConditionType(..)
   , RelationMetadata(..)
   , Relation
@@ -169,13 +172,32 @@ mkSecurityType = SecurityType
 getSecurityType :: SecurityType -> String
 getSecurityType (SecurityType s) = s
 
--- | 代理の範囲
-data AgencyScope
-  = GeneralAgency     -- 包括代理
-  | SpecificAgency    -- 特定代理
-  | LimitedAgency     -- 制限代理
+-- | 代理の範囲（ドメイン非依存）
+-- |
+-- | 文字列として格納され、各ドメインで解釈される。
+-- | noema-retail では RetailAgencyScope として具体化。
+-- |
+-- | ## 使用例
+-- |
+-- | ```purescript
+-- | let general = mkAgencyScope "general"
+-- | getAgencyScope general == "general"
+-- | ```
+newtype AgencyScope = AgencyScope String
 
 derive instance eqAgencyScope :: Eq AgencyScope
+derive instance newtypeAgencyScope :: Newtype AgencyScope _
+
+instance showAgencyScope :: Show AgencyScope where
+  show (AgencyScope s) = "(AgencyScope " <> show s <> ")"
+
+-- | AgencyScope を作成
+mkAgencyScope :: String -> AgencyScope
+mkAgencyScope = AgencyScope
+
+-- | AgencyScope から型を取得
+getAgencyScope :: AgencyScope -> String
+getAgencyScope (AgencyScope s) = s
 
 -- | 通知すべき変化の種類（ドメイン非依存）
 -- |

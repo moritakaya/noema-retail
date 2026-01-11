@@ -72,7 +72,7 @@ import Noema.Vorzeichnung.Vocabulary.RelationF
   , RelationKind
   , RelationMetadata(..)
   , SecurityType
-  , AgencyScope(..)
+  , AgencyScope
   , ChangeType
   , ConditionType(..)
   , Relation
@@ -85,6 +85,7 @@ import Noema.Vorzeichnung.Vocabulary.RelationF
   , getRelationKindType
   , getChangeType
   , getSecurityType
+  , getAgencyScope
   )
 import Noema.Vorzeichnung.Intent (Intent)
 import Noema.Cognition.Interpretation (Interpretation, realizeInterpretation)
@@ -496,11 +497,10 @@ securityTypeToString :: SecurityType -> String
 securityTypeToString = getSecurityType
 
 -- | AgencyScope を文字列に変換
+-- |
+-- | noema-core の getAgencyScope を使用。
 agencyScopeToString :: AgencyScope -> String
-agencyScopeToString = case _ of
-  GeneralAgency -> "GeneralAgency"
-  SpecificAgency -> "SpecificAgency"
-  LimitedAgency -> "LimitedAgency"
+agencyScopeToString = getAgencyScope
 
 -- | ChangeType を文字列に変換
 -- |
