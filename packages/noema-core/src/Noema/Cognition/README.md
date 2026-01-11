@@ -63,6 +63,8 @@ interpretWithValidation (GetStock tid sid k) = do
 
 ## 使用例
 
+以下は noema-retail での具体的な使用例：
+
 ```purescript
 import Noema.Cognition.Interpretation (Interpretation, runInterpretation)
 import Noema.Sedimentation.Factum (Factum, collapse)
@@ -106,10 +108,22 @@ Effect（外界への崩落）
 noema-core では Interpretation の型と実行関数のみを定義。
 具体的な Interpretation 実装は noema-retail で提供：
 
-- `InventoryInterpretation.purs`: 在庫操作の解釈
-- `SubjectInterpretation.purs`: 主体操作の解釈
-- `ThingInterpretation.purs`: 物操作の解釈（属性、位置、時間構造）
-- `StorageInterpretation.purs`: ストレージ操作の解釈
+### AVDC 語彙の Interpretation
+
+| ファイル | 語彙 | 説明 |
+|----------|------|------|
+| `SubjectInterpretation.purs` | SubjectF | 主体操作を SQLite へ解釈 |
+| `ThingInterpretation.purs` | ThingF | 物操作を SQLite へ解釈（時間構造含む） |
+| `RelationInterpretation.purs` | RelationF | 関係操作を SQLite へ解釈 |
+| `ContractInterpretation.purs` | ContractF | 契約操作を SQLite へ解釈 |
+| `NoemaInterpretation.purs` | NoemaF | 4語彙を統合（Coproduct4） |
+
+### インフラ語彙の Interpretation
+
+| ファイル | 語彙 | 説明 |
+|----------|------|------|
+| `InventoryInterpretation.purs` | InventoryF | 在庫操作を SQLite へ解釈 |
+| `StorageInterpretation.purs` | StorageF | 汎用ストレージ操作 |
 
 ### ThingInterpretation の時間構造
 
