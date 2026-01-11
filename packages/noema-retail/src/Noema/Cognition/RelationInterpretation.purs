@@ -71,7 +71,7 @@ import Noema.Vorzeichnung.Vocabulary.RelationF
   ( RelationF(..)
   , RelationKind
   , RelationMetadata(..)
-  , SecurityType(..)
+  , SecurityType
   , AgencyScope(..)
   , ChangeType
   , ConditionType(..)
@@ -84,6 +84,7 @@ import Noema.Vorzeichnung.Vocabulary.RelationF
   , mkRelationKind
   , getRelationKindType
   , getChangeType
+  , getSecurityType
   )
 import Noema.Vorzeichnung.Intent (Intent)
 import Noema.Cognition.Interpretation (Interpretation, realizeInterpretation)
@@ -489,13 +490,10 @@ metadataToJson = case _ of
   Just meta -> metadataToJsonString meta
 
 -- | SecurityType を文字列に変換
+-- |
+-- | noema-core の getSecurityType を使用。
 securityTypeToString :: SecurityType -> String
-securityTypeToString = case _ of
-  Pledge -> "Pledge"
-  Lien -> "Lien"
-  Mortgage -> "Mortgage"
-  SecurityInterest -> "SecurityInterest"
-  RetentionOfTitle -> "RetentionOfTitle"
+securityTypeToString = getSecurityType
 
 -- | AgencyScope を文字列に変換
 agencyScopeToString :: AgencyScope -> String

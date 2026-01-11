@@ -32,8 +32,11 @@ module Noema.Vorzeichnung.Vocabulary.RelationF
   , ChangeType(..)
   , mkChangeType
   , getChangeType
-    -- * その他の型
+    -- * SecurityType（抽象）
   , SecurityType(..)
+  , mkSecurityType
+  , getSecurityType
+    -- * その他の型
   , AgencyScope(..)
   , ConditionType(..)
   , RelationMetadata(..)
@@ -139,15 +142,32 @@ agencyKind = mkRelationKind "agency" "performative" Nothing
 restrictionKind :: RelationKind
 restrictionKind = mkRelationKind "restriction" "negative" Nothing
 
--- | 担保権の種類
-data SecurityType
-  = Pledge            -- 質権
-  | Lien              -- 留置権
-  | Mortgage          -- 抵当権
-  | SecurityInterest  -- 譲渡担保
-  | RetentionOfTitle  -- 所有権留保
+-- | 担保権の種類（ドメイン非依存）
+-- |
+-- | 文字列として格納され、各ドメインで解釈される。
+-- | noema-retail では RetailSecurityType として具体化。
+-- |
+-- | ## 使用例
+-- |
+-- | ```purescript
+-- | let pledge = mkSecurityType "pledge"
+-- | getSecurityType pledge == "pledge"
+-- | ```
+newtype SecurityType = SecurityType String
 
 derive instance eqSecurityType :: Eq SecurityType
+derive instance newtypeSecurityType :: Newtype SecurityType _
+
+instance showSecurityType :: Show SecurityType where
+  show (SecurityType s) = "(SecurityType " <> show s <> ")"
+
+-- | SecurityType を作成
+mkSecurityType :: String -> SecurityType
+mkSecurityType = SecurityType
+
+-- | SecurityType から型を取得
+getSecurityType :: SecurityType -> String
+getSecurityType (SecurityType s) = s
 
 -- | 代理の範囲
 data AgencyScope

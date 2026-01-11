@@ -20,7 +20,7 @@ import Effect.Console (log)
 import Noema.Topos.Situs (Timestamp(..), Quantity, mkSubjectId, mkThingId, mkContractId, mkRelationId, mkQuantity)
 import Noema.Vorzeichnung.Vocabulary.RelationF
   ( RelationKind
-  , SecurityType(..)
+  , SecurityType
   , AgencyScope(..)
   , ChangeType
   , ConditionType(..)
@@ -37,6 +37,8 @@ import Noema.Vorzeichnung.Vocabulary.RelationF
   , restrictionKind
   , mkChangeType
   , getChangeType
+  , mkSecurityType
+  , getSecurityType
   )
 
 -- ============================================================
@@ -93,14 +95,23 @@ test_relation_kind_show = do
 -- | SecurityType の等値性
 test_security_type_equality :: Effect Boolean
 test_security_type_equality = do
+  let
+    pledge1 = mkSecurityType "pledge"
+    pledge2 = mkSecurityType "pledge"
+    lien = mkSecurityType "lien"
+    mortgage = mkSecurityType "mortgage"
+    securityInterest = mkSecurityType "security_interest"
+    retentionOfTitle = mkSecurityType "retention_of_title"
+
   pure $
-    Pledge == Pledge &&
-    Lien == Lien &&
-    Mortgage == Mortgage &&
-    SecurityInterest == SecurityInterest &&
-    RetentionOfTitle == RetentionOfTitle &&
-    Pledge /= Lien &&
-    Mortgage /= SecurityInterest
+    pledge1 == pledge2 &&
+    getSecurityType pledge1 == "pledge" &&
+    getSecurityType lien == "lien" &&
+    getSecurityType mortgage == "mortgage" &&
+    getSecurityType securityInterest == "security_interest" &&
+    getSecurityType retentionOfTitle == "retention_of_title" &&
+    pledge1 /= lien &&
+    mortgage /= securityInterest
 
 -- ============================================================
 -- AgencyScope テスト
@@ -190,8 +201,9 @@ test_secures_meta :: Effect Boolean
 test_secures_meta = do
   let
     cid = mkContractId "contract-001"
+    pledge = mkSecurityType "pledge"
     meta = SecuresMeta
-      { securityType: Pledge
+      { securityType: pledge
       , priority: 1
       , amount: Just 100000.0
       , securedContract: Just cid
@@ -201,7 +213,7 @@ test_secures_meta = do
   case meta of
     SecuresMeta r ->
       pure $
-        r.securityType == Pledge &&
+        getSecurityType r.securityType == "pledge" &&
         r.priority == 1 &&
         r.amount == Just 100000.0 &&
         r.securedContract == Just cid &&
